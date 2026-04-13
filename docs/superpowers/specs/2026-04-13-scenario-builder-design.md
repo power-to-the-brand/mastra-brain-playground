@@ -85,16 +85,18 @@ User describes scenario (free text)
   spec_name: string,
   mandatory_values: string[],
   unacceptable_values: string[],
-  spec_type: string,
-  source: string,
+  spec_type: string,        // e.g., "Functional"
+  source: string,            // e.g., "text"
   text_confirmation: boolean,
-  classification: string,
-  matching_rule: string,
+  classification: string,    // e.g., "VETO"
+  matching_rule: string,     // e.g., "exact_match"
   reasoning: string,
-  veto_score: number,
-  priority_signal: string
+  veto_score: number,        // e.g., 10
+  priority_signal: string    // e.g., "User specified"
 }
 ```
+
+**ReRankSpec:** Array of objects with similar structure to VetoSpec, used for preference-based ranking specs. The agent should generate an empty array `[]` when no re-ranking specs are relevant to the scenario.
 
 ## Frontend API Route
 
