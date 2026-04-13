@@ -3,12 +3,10 @@
 import * as React from "react";
 import { X, User, Bot, Pencil, Check, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { ChatMessage } from "@/types/scenario";
 
-export interface ConversationMessage {
-  role: "user" | "assistant";
-  content: string;
-  image?: string;
-}
+// Type alias for backwards compatibility - ConversationMessage = ChatMessage
+export type ConversationMessage = ChatMessage;
 
 interface ConversationPreviewSidebarProps {
   open: boolean;
