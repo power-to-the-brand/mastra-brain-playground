@@ -20,7 +20,12 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        scenario: body.scenario,
+        messages: [
+          {
+            role: "user",
+            content: body.scenario,
+          },
+        ],
       }),
     });
 
@@ -40,22 +45,33 @@ export async function POST(request: NextRequest) {
 
     const mastraData = await mastraResponse.json();
 
+    // Parse the output - Mastra returns { text: string } with the JSON inside
+    let output;
+    try {
+      // Try to parse as JSON directly first
+      output = typeof mastraData === "string" ? JSON.parse(mastraData) : mastraData;
+    } catch {
+      // If mastraData has a text field, try parsing that
+      const textContent = mastraData.text || mastraData.output || mastraData;
+      output = typeof textContent === "string" ? JSON.parse(textContent) : textContent;
+    }
+
     // Validate the response structure
-    if (!mastraData.conversationMessages || !Array.isArray(mastraData.conversationMessages)) {
+    if (!output.conversationMessages || !Array.isArray(output.conversationMessages)) {
       return NextResponse.json(
         { error: "Unexpected response from Mastra server: missing conversationMessages array" },
         { status: 502 },
       );
     }
 
-    if (!mastraData.srData || !Array.isArray(mastraData.srData)) {
+    if (!output.srData || !Array.isArray(output.srData)) {
       return NextResponse.json(
         { error: "Unexpected response from Mastra server: missing srData array" },
         { status: 502 },
       );
     }
 
-    if (!mastraData.pastSupplierConversation || !Array.isArray(mastraData.pastSupplierConversation)) {
+    if (!output.pastSupplierConversation || !Array.isArray(output.pastSupplierConversation)) {
       return NextResponse.json(
         { error: "Unexpected response from Mastra server: missing pastSupplierConversation array" },
         { status: 502 },
@@ -63,9 +79,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      conversationMessages: mastraData.conversationMessages,
-      srData: mastraData.srData,
-      pastSupplierConversation: mastraData.pastSupplierConversation,
+      conversationMessages: output.conversationMessages,
+      srData: output.srData,
+      pastSupplierConversation: output.pastSupplierConversation,
     });
   } catch (error) {
     if (error instanceof SyntaxError) {
