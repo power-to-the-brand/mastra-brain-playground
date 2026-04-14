@@ -1,9 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -12,17 +9,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Sidebar } from "@/components/ui/sidebar";
-import { Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, SRData } from "@/types/scenario";
 import { ScenarioInput } from "@/components/scenario-input";
 import { GeneratedResults } from "@/components/generated-results";
+import { ToastProvider } from "@/components/ui/toast-provider";
 
 export default function ScenarioBuilderPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [scenarioInput, setScenarioInput] = useState("");
   const [isGeneratingScenario, setIsGeneratingScenario] = useState(false);
   const [scenarioResults, setScenarioResults] = useState<{
+    name?: string;
     conversationMessages: ChatMessage[];
     srData: SRData[];
     pastSupplierConversation: ChatMessage[];
@@ -107,7 +105,8 @@ export default function ScenarioBuilderPage() {
   }, [scenarioResults]);
 
   return (
-    <div className="min-h-screen bg-stone-50/50 text-stone-800 dark:bg-stone-950 dark:text-stone-100">
+    <ToastProvider>
+      <div className="min-h-screen bg-stone-50/50 text-stone-800 dark:bg-stone-950 dark:text-stone-100">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -120,14 +119,14 @@ export default function ScenarioBuilderPage() {
         )}
       >
         {/* Top Bar */}
-        <header className="sticky top-0 z-40 border-b border-stone-200/60 bg-stone-50/80 px-4 sm:px-6 py-3 sm:py-4 backdrop-blur-md dark:border-stone-800 dark:bg-stone-950/80">
-          <div className="w-full max-w-7xl flex items-center justify-between px-4 sm:px-6">
+        <header className="sticky top-0 z-40 border-b border-stone-200/60 bg-stone-50/80 px-4 sm:px-6 py-4 backdrop-blur-md dark:border-stone-800 dark:bg-stone-950/80">
+          <div className="w-full max-w-4xl flex items-center justify-between pl-2 sm:pl-8">
             <div>
-              <h1 className="text-xl font-serif font-bold tracking-tight text-stone-900 dark:text-stone-100">
+              <h1 className="text-2xl font-serif italic tracking-tight text-stone-900 dark:text-stone-100">
                 Scenario Builder
               </h1>
               <p className="text-sm text-stone-500 dark:text-stone-400">
-                Generate and preview complete scenarios
+                Generate complete testing scenarios with AI
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -142,16 +141,13 @@ export default function ScenarioBuilderPage() {
         </header>
 
         {/* Main Content */}
-        <div className="w-full max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
-          <div className="animate-fade-in-up max-w-3xl sm:mx-0">
-            <h2 className="text-2xl font-serif font-semibold text-stone-900 dark:text-stone-100 mb-6">
-              Generate Scenario
-            </h2>
-
+        <div className="w-full max-w-4xl px-4 sm:px-6 pl-6 sm:pl-14 py-8 sm:py-12">
+          <div className="animate-fade-in-up">
             {scenarioResults ? (
-              <Card className="border-stone-200 bg-white/70 shadow-sm shadow-stone-200/50 backdrop-blur-sm dark:border-stone-800 dark:bg-stone-900/60 dark:shadow-none">
+              <Card className="border-none bg-transparent shadow-none">
                 <CardContent className="pt-6">
                   <GeneratedResults
+                    name={scenarioResults?.name}
                     conversationMessages={scenarioResults.conversationMessages}
                     srData={scenarioResults.srData}
                     pastSupplierConversation={scenarioResults.pastSupplierConversation}
@@ -165,7 +161,7 @@ export default function ScenarioBuilderPage() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border-stone-200 bg-white/70 shadow-sm shadow-stone-200/50 backdrop-blur-sm dark:border-stone-800 dark:bg-stone-900/60 dark:shadow-none">
+              <Card className="border-none bg-transparent shadow-none">
                 <CardHeader>
                   <CardTitle className="text-lg font-medium text-stone-900 dark:text-stone-100">
                     Input Scenario
@@ -177,12 +173,6 @@ export default function ScenarioBuilderPage() {
                 <CardContent>
                   <div className="space-y-6">
                     <div className="space-y-3">
-                      <Label
-                        htmlFor="scenario-input"
-                        className="text-sm font-medium text-stone-700 dark:text-stone-300"
-                      >
-                        Scenario Description
-                      </Label>
                       <ScenarioInput
                         value={scenarioInput}
                         onChange={setScenarioInput}
@@ -203,6 +193,7 @@ export default function ScenarioBuilderPage() {
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </ToastProvider>
   );
 }

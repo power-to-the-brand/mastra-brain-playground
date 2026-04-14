@@ -56,7 +56,28 @@ export interface SRData {
 }
 
 export interface ScenarioOutput {
+  name: string;
   conversationMessages: ChatMessage[];
   srData: SRData[];
   pastSupplierConversation: ChatMessage[];
+}
+
+// Save scenario request interface
+export interface SaveScenarioRequest {
+  name: string;
+  conversationMessages: ChatMessage[];
+  srData: SRData[];
+  pastSupplierConversation: ChatMessage[];
+}
+
+// Save scenario response interface
+export interface SaveScenarioResponse {
+  data: {
+    id: string;
+    name: string;
+    conversationMessages: ChatMessage[];
+    srData: SRData[];
+    pastSupplierConversation: ChatMessage[];
+    createdAt: string;
+  };
 }

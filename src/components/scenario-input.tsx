@@ -5,7 +5,6 @@ import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 
 interface ScenarioInputProps {
   value: string;
@@ -36,35 +35,30 @@ export function ScenarioInput({
 
   return (
     <div className="space-y-3">
-      <Label
-        htmlFor="scenario-description"
-        className="text-sm font-medium text-stone-700 dark:text-stone-300"
-      >
-        Scenario Description
-      </Label>
       <Textarea
         id="scenario-description"
+        aria-label="Scenario description"
         placeholder="Describe your scenario... (e.g., A customer wants to source custom branded stainless steel water bottles for a corporate gift, with budget of $5-7 per unit for 500 pieces)"
         rows={8}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         className={cn(
-          "border-stone-200 bg-stone-50/50 text-stone-800 placeholder:text-stone-400 focus:border-orange-300 focus:ring-orange-300/20 dark:border-stone-700 dark:bg-stone-900/30 dark:text-stone-200 dark:placeholder:text-stone-600",
+          "min-h-[200px] border-stone-200/60 bg-white/40 backdrop-blur-sm text-stone-800 placeholder:text-stone-400 focus:border-orange-300 focus:ring-orange-300/20 dark:border-stone-700/50 dark:bg-stone-900/40 dark:text-stone-200 dark:placeholder:text-stone-600 transition-all duration-300",
           disabled && "opacity-60",
         )}
         disabled={disabled}
       />
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-stone-500 dark:text-stone-400">
-          Press Enter to generate (Shift+Enter for new line)
+      <div className="flex items-center justify-between pt-2">
+        <p className="text-[11px] font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+          Press <kbd className="rounded bg-stone-100 px-1 dark:bg-stone-800">Enter</kbd> to generate
         </p>
         <Button
           size="sm"
           onClick={onGenerate}
           disabled={!canGenerate}
           className={cn(
-            "bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-sm shadow-orange-600/20 transition-all hover:shadow-md hover:shadow-orange-600/30 focus:ring-orange-500/50",
+            "relative overflow-hidden bg-gradient-to-r from-orange-600 to-amber-600 px-6 font-medium text-white shadow-lg shadow-orange-600/20 transition-all hover:scale-[1.02] hover:shadow-orange-600/30 active:scale-[0.98]",
             isLoading && "opacity-70",
           )}
         >

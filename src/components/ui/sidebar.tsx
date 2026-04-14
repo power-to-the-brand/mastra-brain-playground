@@ -3,7 +3,16 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, MessageCircle, Quote, Users, Settings, Menu, LayoutDashboard } from "lucide-react";
+import {
+  Home,
+  MessageCircle,
+  Quote,
+  Users,
+  Settings,
+  Menu,
+  LayoutDashboard,
+  Save,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavItem } from "@/components/ui/nav-item";
 import { SectionTitle } from "@/components/ui/section-title";
@@ -19,29 +28,19 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
 
     const navItems = [
       {
-        href: "/",
-        label: "Dashboard",
-        icon: <Home size={18} strokeWidth={2} />,
-      },
-      {
-        href: "/conversations",
-        label: "Conversations",
-        icon: <MessageCircle size={18} strokeWidth={2} />,
-      },
-      {
-        href: "/quotations",
-        label: "Quotations",
-        icon: <Quote size={18} strokeWidth={2} />,
-      },
-      {
-        href: "/suppliers",
-        label: "Suppliers",
-        icon: <Users size={18} strokeWidth={2} />,
-      },
-      {
         href: "/scenario-builder",
         label: "Scenario Builder",
         icon: <LayoutDashboard size={18} strokeWidth={2} />,
+      },
+      {
+        href: "/scenarios",
+        label: "Scenarios",
+        icon: <Save size={18} strokeWidth={2} />,
+      },
+      {
+        href: "/",
+        label: "Playground",
+        icon: <Home size={18} strokeWidth={2} />,
       },
     ];
 
@@ -51,7 +50,7 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         className={cn(
           "fixed left-0 top-0 z-50 h-full flex-col border-r border-stone-200/60 bg-stone-50/80 backdrop-blur-xl transition-all duration-300 hover:bg-stone-50/90 dark:border-stone-800 dark:bg-stone-950/80 dark:hover:bg-stone-950/90",
           collapsed ? "w-20" : "w-64",
-          className
+          className,
         )}
         {...props}
       >
@@ -98,7 +97,10 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
 
           <div className="space-y-1 px-3">
             <SectionTitle divider={false}>Settings</SectionTitle>
-            <NavItem href="/settings" icon={<Settings size={18} strokeWidth={2} />}>
+            <NavItem
+              href="/settings"
+              icon={<Settings size={18} strokeWidth={2} />}
+            >
               Preferences
             </NavItem>
           </div>
@@ -123,7 +125,7 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         </div>
       </aside>
     );
-  }
+  },
 );
 Sidebar.displayName = "Sidebar";
 

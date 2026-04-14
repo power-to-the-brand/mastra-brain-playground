@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const MASTRA_SERVER_URL =
-  process.env.MASTRA_SERVER_URL ?? "http://localhost:4111";
+  process.env.MASTRA_SERVER_URL ?? "http://localhost:4112";
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,43 +45,58 @@ export async function POST(request: NextRequest) {
 
     const mastraData = await mastraResponse.json();
 
-    // Parse the output - Mastra returns { text: string } with the JSON inside
-    let output;
-    try {
-      // Try to parse as JSON directly first
-      output = typeof mastraData === "string" ? JSON.parse(mastraData) : mastraData;
-    } catch {
-      // If mastraData has a text field, try parsing that
-      const textContent = mastraData.text || mastraData.output || mastraData;
-      output = typeof textContent === "string" ? JSON.parse(textContent) : textContent;
+    if (!mastraData.text || typeof mastraData.text !== "string") {
+      return NextResponse.json(
+        { error: "Unexpected response from Mastra server: missing text field" },
+        { status: 502 },
+      );
     }
 
+    // Strip markdown code fences if present (e.g. ```json ... ```)
+    let rawText = mastraData.text.trim();
+    const codeFenceMatch = rawText.match(
+      /^```(?:json)?\s*\n?([\s\S]*?)\n?\s*```$/,
+    );
+    if (codeFenceMatch) {
+      rawText = codeFenceMatch[1].trim();
+    }
+
+    const parsed = JSON.parse(rawText);
+
     // Validate the response structure
-    if (!output.conversationMessages || !Array.isArray(output.conversationMessages)) {
+    if (!parsed.conversationMessages || !Array.isArray(parsed.conversationMessages)) {
       return NextResponse.json(
         { error: "Unexpected response from Mastra server: missing conversationMessages array" },
         { status: 502 },
       );
     }
 
-    if (!output.srData || !Array.isArray(output.srData)) {
+    if (!parsed.srData || !Array.isArray(parsed.srData)) {
       return NextResponse.json(
         { error: "Unexpected response from Mastra server: missing srData array" },
         { status: 502 },
       );
     }
 
-    if (!output.pastSupplierConversation || !Array.isArray(output.pastSupplierConversation)) {
+    if (!parsed.pastSupplierConversation || !Array.isArray(parsed.pastSupplierConversation)) {
       return NextResponse.json(
         { error: "Unexpected response from Mastra server: missing pastSupplierConversation array" },
         { status: 502 },
       );
     }
 
+    if (!parsed.name || typeof parsed.name !== "string") {
+      return NextResponse.json(
+        { error: "Unexpected response from Mastra server: missing or invalid name field" },
+        { status: 502 },
+      );
+    }
+
     return NextResponse.json({
-      conversationMessages: output.conversationMessages,
-      srData: output.srData,
-      pastSupplierConversation: output.pastSupplierConversation,
+      name: parsed.name,
+      conversationMessages: parsed.conversationMessages,
+      srData: parsed.srData,
+      pastSupplierConversation: parsed.pastSupplierConversation,
     });
   } catch (error) {
     if (error instanceof SyntaxError) {
