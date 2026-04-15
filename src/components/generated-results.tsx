@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, ChevronUp, Copy, Check, Play, MessageSquare, Database, MessageCircle, Save } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Check, Play, MessageSquare, Database, MessageCircle, Save, User, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -89,7 +89,7 @@ function SaveScenarioButton({
         variant="outline"
         onClick={() => setShowNameInput(true)}
         disabled={isLoading || isSaving}
-        className="border-stone-200 text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"
+        className="text-muted-foreground hover:bg-muted hover:text-foreground border-border"
       >
         <Save size={18} className="mr-2" />
         Save Scenario
@@ -104,14 +104,14 @@ function SaveScenarioButton({
         value={scenarioName}
         onChange={(e) => setScenarioName(e.target.value)}
         placeholder="Enter scenario name..."
-        className="flex h-11 w-64 rounded-md border border-stone-300 bg-stone-50 px-3 py-2 text-base placeholder:text-stone-400 focus:border-orange-300 focus:outline-none focus:ring-1 focus:ring-orange-300/20 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:placeholder:text-stone-600"
+        className="flex h-11 w-64 rounded-md border border-border bg-background px-3 py-2 text-base placeholder:text-muted-foreground/50 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
         autoFocus
       />
       <Button
         size="lg"
         onClick={handleSave}
         disabled={isLoading || isSaving || !scenarioName.trim()}
-        className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white"
+        className="bg-primary text-primary-foreground hover:bg-primary/90"
       >
         {isSaving ? (
           <>
@@ -133,6 +133,7 @@ function SaveScenarioButton({
           setScenarioName("");
         }}
         disabled={isLoading || isSaving}
+        className="text-muted-foreground hover:text-foreground"
       >
         Cancel
       </Button>
@@ -165,20 +166,20 @@ export function GeneratedResults({
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
+  const formatJson = (obj: unknown) => {
+    return JSON.stringify(obj, null, 2);
+  };
+
   const copyToClipboard = (content: string, sectionId: string) => {
     navigator.clipboard.writeText(content);
     setCopiedSection(sectionId);
     setTimeout(() => setCopiedSection(null), 2000);
   };
 
-  const formatJson = (obj: unknown) => {
-    return JSON.stringify(obj, null, 2);
-  };
-
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h2 className="text-2xl font-serif font-semibold text-stone-900 dark:text-stone-100">
+        <h2 className="text-2xl font-serif font-bold tracking-tight text-foreground">
           Generated Results
         </h2>
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -195,7 +196,7 @@ export function GeneratedResults({
           />
           <Button
             size="lg"
-            className="flex-1 sm:flex-none w-full sm:w-auto font-medium bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-md shadow-orange-600/20 transition-all hover:shadow-lg hover:shadow-orange-600/30 focus:ring-orange-500/50"
+            className="flex-1 sm:flex-none w-full sm:w-auto font-medium bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-all active:scale-[0.98]"
             onClick={onLoadIntoPlayground || onReset}
             disabled={isLoading}
           >
@@ -207,7 +208,7 @@ export function GeneratedResults({
             variant="outline"
             onClick={onReset}
             disabled={isLoading}
-            className="border-stone-200 text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"
+            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             Start Over
           </Button>
@@ -215,61 +216,63 @@ export function GeneratedResults({
       </div>
 
       {/* Customer-Bot Conversation Section */}
-      <div className="overflow-hidden rounded-3xl border border-stone-200/60 bg-white/70 shadow-xl shadow-stone-200/40 backdrop-blur-sm dark:border-stone-800/50 dark:bg-stone-900/70 dark:shadow-none">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300">
         <button
           onClick={() => toggleSection("conversation")}
           aria-expanded={expandedSections.conversation}
-          className="flex w-full items-center justify-between px-4 py-3 hover:bg-stone-50 dark:hover:bg-stone-800"
+          className="flex w-full items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors"
         >
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
-              <MessageSquare size={16} />
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <MessageSquare size={18} />
             </div>
-            <span className="font-medium text-stone-900 dark:text-stone-100">
-              Customer-Bot Conversation
-            </span>
-            <Badge variant="secondary" className="ml-2">
-              {conversationMessages.length} messages
-            </Badge>
+            <div className="text-left">
+              <span className="block font-serif font-bold text-foreground">
+                Customer-Bot Conversation
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                {conversationMessages.length} messages
+              </span>
+            </div>
           </div>
           {expandedSections.conversation ? (
-            <ChevronUp size={16} className="text-stone-500" />
+            <ChevronUp size={18} className="text-muted-foreground/60" />
           ) : (
-            <ChevronDown size={16} className="text-stone-500" />
+            <ChevronDown size={18} className="text-muted-foreground/60" />
           )}
         </button>
 
         {expandedSections.conversation && conversationMessages.length > 0 && (
-          <div className="border-t border-stone-200 p-4 dark:border-stone-700">
-            <div className="flex flex-col gap-4">
+          <div className="border-t border-border p-6 bg-muted/5">
+            <div className="flex flex-col gap-5">
               {conversationMessages.map((msg, idx) => (
                 <div
                   key={idx}
                   className={cn(
-                    "flex gap-3",
+                    "flex gap-4",
                     msg.role === "user" ? "flex-row-reverse" : "flex-row",
                   )}
                 >
                   <div
                     className={cn(
-                      "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white",
+                      "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full shadow-sm transition-colors",
                       msg.role === "user"
-                        ? "bg-gradient-to-br from-orange-500 to-amber-500"
-                        : "bg-stone-500 dark:bg-stone-600",
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground",
                     )}
                   >
                     {msg.role === "user" ? (
-                      <Play size={14} className="rotate-90" />
+                      <User size={16} strokeWidth={2.5} />
                     ) : (
-                      <Play size={14} className="-rotate-90" />
+                      <Bot size={16} strokeWidth={2.5} />
                     )}
                   </div>
                   <div
                     className={cn(
-                      "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
+                      "max-w-[85%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed shadow-sm transition-all duration-300",
                       msg.role === "user"
-                        ? "rounded-tr-none bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900"
-                        : "rounded-tl-none bg-stone-50 border border-stone-100 text-stone-700 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-300",
+                        ? "rounded-tr-none bg-primary text-primary-foreground"
+                        : "rounded-tl-none bg-card border border-border text-foreground",
                     )}
                   >
                     {msg.content}
@@ -277,7 +280,7 @@ export function GeneratedResults({
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex justify-end">
+            <div className="mt-6 flex justify-end">
               <Button
                 size="sm"
                 variant="ghost"
@@ -287,17 +290,17 @@ export function GeneratedResults({
                     "conversation",
                   )
                 }
-                className="text-xs text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
+                className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
               >
                 {copiedSection === "conversation" ? (
                   <>
-                    <Check size={14} className="mr-1.5" />
+                    <Check size={14} className="mr-1.5 text-success" />
                     Copied!
                   </>
                 ) : (
                   <>
                     <Copy size={14} className="mr-1.5" />
-                    Copy
+                    Copy Transcript
                   </>
                 )}
               </Button>
@@ -307,47 +310,49 @@ export function GeneratedResults({
       </div>
 
       {/* SR Data Section */}
-      <div className="overflow-hidden rounded-3xl border border-stone-200/60 bg-white/70 shadow-xl shadow-stone-200/40 backdrop-blur-sm dark:border-stone-800/50 dark:bg-stone-900/70 dark:shadow-none">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300">
         <button
           onClick={() => toggleSection("srData")}
           aria-expanded={expandedSections.srData}
-          className="flex w-full items-center justify-between px-4 py-3 hover:bg-stone-50 dark:hover:bg-stone-800"
+          className="flex w-full items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors"
         >
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-              <Database size={16} />
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Database size={18} />
             </div>
-            <span className="font-medium text-stone-900 dark:text-stone-100">
-              SR Data
-            </span>
-            <Badge variant="secondary" className="ml-2">
-              {srData.length} item{srData.length !== 1 ? "s" : ""}
-            </Badge>
+            <div className="text-left">
+              <span className="block font-serif font-bold text-foreground">
+                SR Data
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                {srData.length} item{srData.length !== 1 ? "s" : ""}
+              </span>
+            </div>
           </div>
           {expandedSections.srData ? (
-            <ChevronUp size={16} className="text-stone-500" />
+            <ChevronUp size={18} className="text-muted-foreground/60" />
           ) : (
-            <ChevronDown size={16} className="text-stone-500" />
+            <ChevronDown size={18} className="text-muted-foreground/60" />
           )}
         </button>
 
         {expandedSections.srData && srData.length > 0 && (
-          <div className="border-t border-stone-200 p-4 dark:border-stone-700">
-            <div className="max-h-[400px] overflow-y-auto rounded-lg bg-stone-50 p-3 font-mono text-xs text-stone-700 dark:bg-stone-950 dark:text-stone-300">
+          <div className="border-t border-border p-6 bg-muted/5">
+            <div className="max-h-[400px] overflow-y-auto rounded-xl border border-border bg-background p-4 font-mono text-xs text-foreground/80 leading-relaxed scrollbar-thin scrollbar-thumb-border">
               <pre>{formatJson(srData)}</pre>
             </div>
-            <div className="mt-3 flex justify-end">
+            <div className="mt-4 flex justify-end">
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() =>
                   copyToClipboard(formatJson(srData), "srData")
                 }
-                className="text-xs text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
+                className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
               >
                 {copiedSection === "srData" ? (
                   <>
-                    <Check size={14} className="mr-1.5" />
+                    <Check size={14} className="mr-1.5 text-success" />
                     Copied!
                   </>
                 ) : (
@@ -363,61 +368,63 @@ export function GeneratedResults({
       </div>
 
       {/* Past Supplier Conversation Section */}
-      <div className="overflow-hidden rounded-3xl border border-stone-200/60 bg-white/70 shadow-xl shadow-stone-200/40 backdrop-blur-sm dark:border-stone-800/50 dark:bg-stone-900/70 dark:shadow-none">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300">
         <button
           onClick={() => toggleSection("supplierChat")}
           aria-expanded={expandedSections.supplierChat}
-          className="flex w-full items-center justify-between px-4 py-3 hover:bg-stone-50 dark:hover:bg-stone-800"
+          className="flex w-full items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors"
         >
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-              <MessageCircle size={16} />
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <MessageCircle size={18} />
             </div>
-            <span className="font-medium text-stone-900 dark:text-stone-100">
-              Past Supplier Conversation
-            </span>
-            <Badge variant="secondary" className="ml-2">
-              {pastSupplierConversation.length} messages
-            </Badge>
+            <div className="text-left">
+              <span className="block font-serif font-bold text-foreground">
+                Past Supplier Conversation
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                {pastSupplierConversation.length} messages
+              </span>
+            </div>
           </div>
           {expandedSections.supplierChat ? (
-            <ChevronUp size={16} className="text-stone-500" />
+            <ChevronUp size={18} className="text-muted-foreground/60" />
           ) : (
-            <ChevronDown size={16} className="text-stone-500" />
+            <ChevronDown size={18} className="text-muted-foreground/60" />
           )}
         </button>
 
         {expandedSections.supplierChat && pastSupplierConversation.length > 0 && (
-          <div className="border-t border-stone-200 p-4 dark:border-stone-700">
-            <div className="flex flex-col gap-4">
+          <div className="border-t border-border p-6 bg-muted/5">
+            <div className="flex flex-col gap-5">
               {pastSupplierConversation.map((msg, idx) => (
                 <div
                   key={idx}
                   className={cn(
-                    "flex gap-3",
+                    "flex gap-4",
                     msg.role === "user" ? "flex-row-reverse" : "flex-row",
                   )}
                 >
                   <div
                     className={cn(
-                      "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white",
+                      "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full shadow-sm transition-colors",
                       msg.role === "user"
-                        ? "bg-gradient-to-br from-orange-500 to-amber-500"
-                        : "bg-stone-500 dark:bg-stone-600",
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground",
                     )}
                   >
                     {msg.role === "user" ? (
-                      <Play size={14} className="rotate-90" />
+                      <User size={16} strokeWidth={2.5} />
                     ) : (
-                      <Play size={14} className="-rotate-90" />
+                      <Bot size={16} strokeWidth={2.5} />
                     )}
                   </div>
                   <div
                     className={cn(
-                      "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
+                      "max-w-[85%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed shadow-sm transition-all duration-300",
                       msg.role === "user"
-                        ? "rounded-tr-none bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900"
-                        : "rounded-tl-none bg-stone-50 border border-stone-100 text-stone-700 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-300",
+                        ? "rounded-tr-none bg-primary text-primary-foreground"
+                        : "rounded-tl-none bg-card border border-border text-foreground",
                     )}
                   >
                     {msg.content}
@@ -425,7 +432,7 @@ export function GeneratedResults({
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex justify-end">
+            <div className="mt-6 flex justify-end">
               <Button
                 size="sm"
                 variant="ghost"
@@ -435,17 +442,17 @@ export function GeneratedResults({
                     "supplierChat",
                   )
                 }
-                className="text-xs text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
+                className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
               >
                 {copiedSection === "supplierChat" ? (
                   <>
-                    <Check size={14} className="mr-1.5" />
+                    <Check size={14} className="mr-1.5 text-success" />
                     Copied!
                   </>
                 ) : (
                   <>
                     <Copy size={14} className="mr-1.5" />
-                    Copy
+                    Copy Transcript
                   </>
                 )}
               </Button>

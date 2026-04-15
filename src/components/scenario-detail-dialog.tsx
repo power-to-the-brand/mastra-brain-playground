@@ -15,6 +15,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Dialog,
   DialogContent,
@@ -218,27 +220,27 @@ export function ScenarioDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col p-0 overflow-hidden border-border bg-card">
         <div className="px-6 pt-6 pb-2">
           <DialogHeader>
-            <DialogTitle className="text-xl font-serif tracking-tight text-stone-900 dark:text-stone-100">
+            <DialogTitle className="text-xl font-serif font-bold tracking-tight text-foreground">
               {editingName ? (
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
-                    className="flex-1 px-2 py-1 text-xl font-serif tracking-tight border border-stone-300 rounded-lg bg-white dark:bg-stone-800 dark:border-stone-600 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="flex-1 px-3 py-1.5 text-base font-serif font-bold tracking-tight border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") saveName();
                       if (e.key === "Escape") cancelEditName();
                     }}
                     autoFocus
                   />
-                  <Button size="sm" onClick={saveName} className="h-8 px-2 bg-orange-600 hover:bg-orange-700 text-white">
+                  <Button size="sm" onClick={saveName} className="h-9 px-3 bg-primary text-primary-foreground hover:bg-primary/90">
                     Save
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={cancelEditName} className="h-8 px-2">
+                  <Button size="sm" variant="ghost" onClick={cancelEditName} className="h-9 px-3 text-muted-foreground hover:text-foreground">
                     Cancel
                   </Button>
                 </div>
@@ -247,14 +249,14 @@ export function ScenarioDetailDialog({
                   <span>{localScenario.name}</span>
                   <button
                     onClick={startEditingName}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-stone-200 dark:hover:bg-stone-700 rounded transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-muted rounded-lg transition-all text-muted-foreground hover:text-foreground active:scale-95"
                   >
                     <Edit size={14} />
                   </button>
                 </div>
               )}
             </DialogTitle>
-            <DialogDescription className="text-sm text-stone-500 dark:text-stone-400">
+            <DialogDescription className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
               Created: {new Date(localScenario.createdAt).toLocaleString()}
             </DialogDescription>
           </DialogHeader>
@@ -266,30 +268,30 @@ export function ScenarioDetailDialog({
             open={expandedSections.conversation}
             onOpenChange={() => toggleSection("conversation")}
           >
-            <div className="overflow-hidden rounded-2xl border border-stone-200/60 bg-white/70 dark:border-stone-800/50 dark:bg-stone-900/70">
-              <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 hover:bg-stone-50 dark:hover:bg-stone-800">
+            <div className="overflow-hidden rounded-2xl border border-border bg-muted/5">
+              <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <MessageSquare size={14} />
                   </div>
-                  <span className="text-sm font-medium text-stone-900 dark:text-stone-100">
+                  <span className="text-sm font-serif font-bold text-foreground">
                     Customer-Bot Conversation
                   </span>
-                  <Badge variant="secondary" className="ml-1 text-xs">
+                  <Badge variant="secondary" className="ml-1 text-[10px] font-bold uppercase tracking-wider">
                     {localScenario.conversationMessages.length} messages
                   </Badge>
                 </div>
                 {expandedSections.conversation ? (
-                  <ChevronUp size={14} className="text-stone-500" />
+                  <ChevronUp size={14} className="text-muted-foreground/60" />
                 ) : (
-                  <ChevronDown size={14} className="text-stone-500" />
+                  <ChevronDown size={14} className="text-muted-foreground/60" />
                 )}
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="border-t border-stone-200 p-4 dark:border-stone-700">
+                <div className="border-t border-border p-4 bg-background/50">
                   {localScenario.conversationMessages.length > 0 ? (
                     <>
-                      <div className="flex flex-col gap-3 max-h-[200px] overflow-y-auto">
+                      <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-border">
                         {localScenario.conversationMessages.map((msg, idx) => (
                           <div
                             key={idx}
@@ -300,10 +302,10 @@ export function ScenarioDetailDialog({
                           >
                             <div
                               className={cn(
-                                "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-white text-xs",
+                                "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full shadow-sm text-xs transition-colors",
                                 msg.role === "user"
-                                  ? "bg-gradient-to-br from-orange-500 to-amber-500"
-                                  : "bg-stone-500 dark:bg-stone-600",
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-muted-foreground",
                               )}
                             >
                               <Play size={10} className={msg.role === "user" ? "rotate-90" : "-rotate-90"} />
@@ -314,15 +316,15 @@ export function ScenarioDetailDialog({
                                   <textarea
                                     value={editingMessage.content}
                                     onChange={(e) => setEditingMessage({ ...editingMessage, content: e.target.value })}
-                                    className="w-full rounded-xl px-3 py-2 text-xs leading-relaxed border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 resize-none"
+                                    className="w-full rounded-xl px-3 py-2 text-xs leading-relaxed border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/40 transition-all resize-none"
                                     rows={3}
                                     autoFocus
                                   />
-                                  <div className="flex gap-1 justify-end">
-                                    <Button size="sm" variant="ghost" onClick={cancelEditMessage} className="h-6 px-2 text-xs">
+                                  <div className="flex gap-1.5 justify-end">
+                                    <Button size="sm" variant="ghost" onClick={cancelEditMessage} className="h-7 px-3 text-xs text-muted-foreground hover:text-foreground">
                                       Cancel
                                     </Button>
-                                    <Button size="sm" onClick={saveEditedMessage} className="h-6 px-2 text-xs bg-orange-600 hover:bg-orange-700 text-white">
+                                    <Button size="sm" onClick={saveEditedMessage} className="h-7 px-3 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
                                       Save
                                     </Button>
                                   </div>
@@ -331,26 +333,26 @@ export function ScenarioDetailDialog({
                                 <>
                                   <div
                                     className={cn(
-                                      "rounded-xl px-3 py-2 text-xs leading-relaxed",
+                                      "rounded-xl px-3 py-2 text-xs leading-relaxed shadow-sm transition-all duration-200",
                                       msg.role === "user"
-                                        ? "rounded-tr-none bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900"
-                                        : "rounded-tl-none bg-stone-50 border border-stone-100 text-stone-700 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-300",
+                                        ? "rounded-tr-none bg-primary text-primary-foreground"
+                                        : "rounded-tl-none bg-card border border-border text-foreground",
                                     )}
                                   >
                                     {msg.content}
                                   </div>
-                                  <div className="flex gap-1 opacity-0 hover:opacity-100 transition-opacity">
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={() => startEditingMessage("conversation", idx)}
-                                      className="p-1 hover:bg-stone-200 dark:hover:bg-stone-700 rounded text-stone-500 hover:text-stone-700 dark:hover:text-stone-300"
+                                      className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-all"
                                     >
                                       <Edit size={10} />
                                     </button>
                                     <button
                                       onClick={() => deleteMessage("conversation", idx)}
-                                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-stone-500 hover:text-red-600"
+                                      className="p-1.5 hover:bg-destructive/10 rounded-lg text-muted-foreground hover:text-destructive transition-all"
                                     >
-                                      <Check size={10} className="text-red-500" />
+                                      <Check size={10} className="text-destructive" />
                                     </button>
                                   </div>
                                 </>
@@ -360,13 +362,13 @@ export function ScenarioDetailDialog({
                         ))}
                       </div>
                       {addingMessageTo === "conversation" ? (
-                        <div className="mt-3 p-3 border border-stone-200 dark:border-stone-700 rounded-lg bg-stone-50 dark:bg-stone-800/50">
-                          <div className="flex gap-2 mb-2">
+                        <div className="mt-4 p-4 border border-border rounded-xl bg-muted/20">
+                          <div className="flex gap-2 mb-3">
                             <Button
                               size="sm"
                               variant={newMessageRole === "user" ? "default" : "outline"}
                               onClick={() => setNewMessageRole("user")}
-                              className={cn("h-7 text-xs", newMessageRole === "user" ? "bg-orange-600 hover:bg-orange-700" : "")}
+                              className={cn("h-7 px-3 text-[10px] font-bold uppercase tracking-wider", newMessageRole === "user" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                             >
                               Customer
                             </Button>
@@ -374,7 +376,7 @@ export function ScenarioDetailDialog({
                               size="sm"
                               variant={newMessageRole === "assistant" ? "default" : "outline"}
                               onClick={() => setNewMessageRole("assistant")}
-                              className={cn("h-7 text-xs", newMessageRole === "assistant" ? "bg-stone-600 hover:bg-stone-700" : "")}
+                              className={cn("h-7 px-3 text-[10px] font-bold uppercase tracking-wider", newMessageRole === "assistant" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                             >
                               Bot
                             </Button>
@@ -383,28 +385,29 @@ export function ScenarioDetailDialog({
                             value={newMessageContent}
                             onChange={(e) => setNewMessageContent(e.target.value)}
                             placeholder="Enter message..."
-                            className="w-full px-3 py-2 text-xs border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-900 resize-none"
-                            rows={2}
+                            className="w-full px-3 py-2 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/40 transition-all resize-none"
+                            rows={3}
                             autoFocus
                           />
-                          <div className="flex gap-1 mt-2 justify-end">
-                            <Button size="sm" variant="ghost" onClick={cancelAddMessage} className="h-7 text-xs">
+                          <div className="flex gap-1.5 mt-3 justify-end">
+                            <Button size="sm" variant="ghost" onClick={cancelAddMessage} className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground">
                               Cancel
                             </Button>
-                            <Button size="sm" onClick={addMessage} className="h-7 text-xs bg-orange-600 hover:bg-orange-700 text-white">
-                              Add
+                            <Button size="sm" onClick={addMessage} className="h-8 px-4 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
+                              Add Message
                             </Button>
                           </div>
                         </div>
                       ) : (
-                        <div className="mt-2 flex justify-between">
+                        <div className="mt-4 flex justify-between">
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => startAddingMessage("conversation")}
-                            className="text-xs text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 h-7"
+                            className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground h-8 px-3"
                           >
-                            <MessageSquare size={12} className="mr-1" />Add Message
+                            <MessageSquare size={12} className="mr-1.5" />
+                            Add Message
                           </Button>
                           <Button
                             size="sm"
@@ -415,27 +418,28 @@ export function ScenarioDetailDialog({
                                 "conversation",
                               )
                             }
-                            className="text-xs text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 h-7"
+                            className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground h-8 px-3"
                           >
                             {copiedSection === "conversation" ? (
-                              <><Check size={12} className="mr-1" />Copied!</>
+                              <><Check size={12} className="mr-1.5 text-success" />Copied!</>
                             ) : (
-                              <><Copy size={12} className="mr-1" />Copy</>
+                              <><Copy size={12} className="mr-1.5" />Copy Transcript</>
                             )}
                           </Button>
                         </div>
                       )}
                     </>
                   ) : (
-                    <div className="text-center py-4">
-                      <p className="text-xs text-stone-400 dark:text-stone-500 mb-3">No messages</p>
+                    <div className="text-center py-8">
+                      <p className="text-xs text-muted-foreground mb-4">No messages yet</p>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => startAddingMessage("conversation")}
-                        className="text-xs"
+                        className="text-[10px] font-bold uppercase tracking-wider border-border text-muted-foreground hover:bg-muted hover:text-foreground"
                       >
-                        <MessageSquare size={12} className="mr-1" />Add Message
+                        <MessageSquare size={12} className="mr-1.5" />
+                        Add First Message
                       </Button>
                     </div>
                   )}
@@ -449,49 +453,49 @@ export function ScenarioDetailDialog({
             open={expandedSections.srData}
             onOpenChange={() => toggleSection("srData")}
           >
-            <div className="overflow-hidden rounded-2xl border border-stone-200/60 bg-white/70 dark:border-stone-800/50 dark:bg-stone-900/70">
-              <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 hover:bg-stone-50 dark:hover:bg-stone-800">
+            <div className="overflow-hidden rounded-2xl border border-border bg-muted/5">
+              <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Database size={14} />
                   </div>
-                  <span className="text-sm font-medium text-stone-900 dark:text-stone-100">
+                  <span className="text-sm font-serif font-bold text-foreground">
                     SR Data
                   </span>
-                  <Badge variant="secondary" className="ml-1 text-xs">
+                  <Badge variant="secondary" className="ml-1 text-[10px] font-bold uppercase tracking-wider">
                     {localScenario.srData.length} item{localScenario.srData.length !== 1 ? "s" : ""}
                   </Badge>
                 </div>
                 {expandedSections.srData ? (
-                  <ChevronUp size={14} className="text-stone-500" />
+                  <ChevronUp size={14} className="text-muted-foreground/60" />
                 ) : (
-                  <ChevronDown size={14} className="text-stone-500" />
+                  <ChevronDown size={14} className="text-muted-foreground/60" />
                 )}
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="border-t border-stone-200 p-4 dark:border-stone-700">
+                <div className="border-t border-border p-4 bg-background/50">
                   {localScenario.srData.length > 0 ? (
                     <>
-                      <div className="max-h-[200px] overflow-y-auto rounded-lg bg-stone-50 p-3 font-mono text-xs text-stone-700 dark:bg-stone-950 dark:text-stone-300">
+                      <div className="max-h-[300px] overflow-y-auto rounded-xl border border-border bg-background p-4 font-mono text-xs text-foreground/80 leading-relaxed scrollbar-thin scrollbar-thumb-border">
                         <pre>{formatJson(localScenario.srData)}</pre>
                       </div>
-                      <div className="mt-3 flex justify-end">
+                      <div className="mt-4 flex justify-end">
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => copyToClipboard(formatJson(localScenario.srData), "srData")}
-                          className="text-xs text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 h-7"
+                          className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground h-8 px-3"
                         >
                           {copiedSection === "srData" ? (
-                            <><Check size={12} className="mr-1" />Copied!</>
+                            <><Check size={12} className="mr-1.5 text-success" />Copied!</>
                           ) : (
-                            <><Copy size={12} className="mr-1" />Copy JSON</>
+                            <><Copy size={12} className="mr-1.5" />Copy JSON</>
                           )}
                         </Button>
                       </div>
                     </>
                   ) : (
-                    <p className="text-xs text-stone-400 dark:text-stone-500">No SR data</p>
+                    <p className="text-xs text-muted-foreground">No SR data</p>
                   )}
                 </div>
               </CollapsibleContent>
@@ -503,30 +507,30 @@ export function ScenarioDetailDialog({
             open={expandedSections.supplierChat}
             onOpenChange={() => toggleSection("supplierChat")}
           >
-            <div className="overflow-hidden rounded-2xl border border-stone-200/60 bg-white/70 dark:border-stone-800/50 dark:bg-stone-900/70">
-              <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 hover:bg-stone-50 dark:hover:bg-stone-800">
+            <div className="overflow-hidden rounded-2xl border border-border bg-muted/5">
+              <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <MessageCircle size={14} />
                   </div>
-                  <span className="text-sm font-medium text-stone-900 dark:text-stone-100">
+                  <span className="text-sm font-serif font-bold text-foreground">
                     Past Supplier Conversation
                   </span>
-                  <Badge variant="secondary" className="ml-1 text-xs">
+                  <Badge variant="secondary" className="ml-1 text-[10px] font-bold uppercase tracking-wider">
                     {localScenario.pastSupplierConversation.length} messages
                   </Badge>
                 </div>
                 {expandedSections.supplierChat ? (
-                  <ChevronUp size={14} className="text-stone-500" />
+                  <ChevronUp size={14} className="text-muted-foreground/60" />
                 ) : (
-                  <ChevronDown size={14} className="text-stone-500" />
+                  <ChevronDown size={14} className="text-muted-foreground/60" />
                 )}
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="border-t border-stone-200 p-4 dark:border-stone-700">
+                <div className="border-t border-border p-4 bg-background/50">
                   {localScenario.pastSupplierConversation.length > 0 ? (
                     <>
-                      <div className="flex flex-col gap-3 max-h-[200px] overflow-y-auto">
+                      <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-border">
                         {localScenario.pastSupplierConversation.map((msg, idx) => (
                           <div
                             key={idx}
@@ -537,10 +541,10 @@ export function ScenarioDetailDialog({
                           >
                             <div
                               className={cn(
-                                "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-white text-xs",
+                                "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full shadow-sm text-xs transition-colors",
                                 msg.role === "user"
-                                  ? "bg-gradient-to-br from-orange-500 to-amber-500"
-                                  : "bg-stone-500 dark:bg-stone-600",
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-muted-foreground",
                               )}
                             >
                               <Play size={10} className={msg.role === "user" ? "rotate-90" : "-rotate-90"} />
@@ -551,15 +555,15 @@ export function ScenarioDetailDialog({
                                   <textarea
                                     value={editingMessage.content}
                                     onChange={(e) => setEditingMessage({ ...editingMessage, content: e.target.value })}
-                                    className="w-full rounded-xl px-3 py-2 text-xs leading-relaxed border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 resize-none"
+                                    className="w-full rounded-xl px-3 py-2 text-xs leading-relaxed border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/40 transition-all resize-none"
                                     rows={3}
                                     autoFocus
                                   />
-                                  <div className="flex gap-1 justify-end">
-                                    <Button size="sm" variant="ghost" onClick={cancelEditMessage} className="h-6 px-2 text-xs">
+                                  <div className="flex gap-1.5 justify-end">
+                                    <Button size="sm" variant="ghost" onClick={cancelEditMessage} className="h-7 px-3 text-xs text-muted-foreground hover:text-foreground">
                                       Cancel
                                     </Button>
-                                    <Button size="sm" onClick={saveEditedMessage} className="h-6 px-2 text-xs bg-orange-600 hover:bg-orange-700 text-white">
+                                    <Button size="sm" onClick={saveEditedMessage} className="h-7 px-3 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
                                       Save
                                     </Button>
                                   </div>
@@ -568,26 +572,26 @@ export function ScenarioDetailDialog({
                                 <>
                                   <div
                                     className={cn(
-                                      "rounded-xl px-3 py-2 text-xs leading-relaxed",
+                                      "rounded-xl px-3 py-2 text-xs leading-relaxed shadow-sm transition-all duration-200",
                                       msg.role === "user"
-                                        ? "rounded-tr-none bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900"
-                                        : "rounded-tl-none bg-stone-50 border border-stone-100 text-stone-700 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-300",
+                                        ? "rounded-tr-none bg-primary text-primary-foreground"
+                                        : "rounded-tl-none bg-card border border-border text-foreground",
                                     )}
                                   >
                                     {msg.content}
                                   </div>
-                                  <div className="flex gap-1 opacity-0 hover:opacity-100 transition-opacity">
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={() => startEditingMessage("supplier", idx)}
-                                      className="p-1 hover:bg-stone-200 dark:hover:bg-stone-700 rounded text-stone-500 hover:text-stone-700 dark:hover:text-stone-300"
+                                      className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-all"
                                     >
                                       <Edit size={10} />
                                     </button>
                                     <button
                                       onClick={() => deleteMessage("supplier", idx)}
-                                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-stone-500 hover:text-red-600"
+                                      className="p-1.5 hover:bg-destructive/10 rounded-lg text-muted-foreground hover:text-destructive transition-all"
                                     >
-                                      <Check size={10} className="text-red-500" />
+                                      <Check size={10} className="text-destructive" />
                                     </button>
                                   </div>
                                 </>
@@ -597,13 +601,13 @@ export function ScenarioDetailDialog({
                         ))}
                       </div>
                       {addingMessageTo === "supplier" ? (
-                        <div className="mt-3 p-3 border border-stone-200 dark:border-stone-700 rounded-lg bg-stone-50 dark:bg-stone-800/50">
-                          <div className="flex gap-2 mb-2">
+                        <div className="mt-4 p-4 border border-border rounded-xl bg-muted/20">
+                          <div className="flex gap-2 mb-3">
                             <Button
                               size="sm"
                               variant={newMessageRole === "user" ? "default" : "outline"}
                               onClick={() => setNewMessageRole("user")}
-                              className={cn("h-7 text-xs", newMessageRole === "user" ? "bg-orange-600 hover:bg-orange-700" : "")}
+                              className={cn("h-7 px-3 text-[10px] font-bold uppercase tracking-wider", newMessageRole === "user" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                             >
                               Customer
                             </Button>
@@ -611,7 +615,7 @@ export function ScenarioDetailDialog({
                               size="sm"
                               variant={newMessageRole === "assistant" ? "default" : "outline"}
                               onClick={() => setNewMessageRole("assistant")}
-                              className={cn("h-7 text-xs", newMessageRole === "assistant" ? "bg-stone-600 hover:bg-stone-700" : "")}
+                              className={cn("h-7 px-3 text-[10px] font-bold uppercase tracking-wider", newMessageRole === "assistant" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
                             >
                               Bot
                             </Button>
@@ -620,28 +624,29 @@ export function ScenarioDetailDialog({
                             value={newMessageContent}
                             onChange={(e) => setNewMessageContent(e.target.value)}
                             placeholder="Enter message..."
-                            className="w-full px-3 py-2 text-xs border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-900 resize-none"
-                            rows={2}
+                            className="w-full px-3 py-2 text-xs border border-border rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/40 transition-all resize-none"
+                            rows={3}
                             autoFocus
                           />
-                          <div className="flex gap-1 mt-2 justify-end">
-                            <Button size="sm" variant="ghost" onClick={cancelAddMessage} className="h-7 text-xs">
+                          <div className="flex gap-1.5 mt-3 justify-end">
+                            <Button size="sm" variant="ghost" onClick={cancelAddMessage} className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground">
                               Cancel
                             </Button>
-                            <Button size="sm" onClick={addMessage} className="h-7 text-xs bg-orange-600 hover:bg-orange-700 text-white">
-                              Add
+                            <Button size="sm" onClick={addMessage} className="h-8 px-4 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
+                              Add Message
                             </Button>
                           </div>
                         </div>
                       ) : (
-                        <div className="mt-2 flex justify-between">
+                        <div className="mt-4 flex justify-between">
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => startAddingMessage("supplier")}
-                            className="text-xs text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 h-7"
+                            className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground h-8 px-3"
                           >
-                            <MessageCircle size={12} className="mr-1" />Add Message
+                            <MessageCircle size={12} className="mr-1.5" />
+                            Add Message
                           </Button>
                           <Button
                             size="sm"
@@ -652,27 +657,28 @@ export function ScenarioDetailDialog({
                                 "supplierChat",
                               )
                             }
-                            className="text-xs text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 h-7"
+                            className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground h-8 px-3"
                           >
                             {copiedSection === "supplierChat" ? (
-                              <><Check size={12} className="mr-1" />Copied!</>
+                              <><Check size={12} className="mr-1.5 text-success" />Copied!</>
                             ) : (
-                              <><Copy size={12} className="mr-1" />Copy</>
+                              <><Copy size={12} className="mr-1.5" />Copy Transcript</>
                             )}
                           </Button>
                         </div>
                       )}
                     </>
                   ) : (
-                    <div className="text-center py-4">
-                      <p className="text-xs text-stone-400 dark:text-stone-500 mb-3">No supplier messages</p>
+                    <div className="text-center py-8">
+                      <p className="text-xs text-muted-foreground mb-4">No supplier messages yet</p>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => startAddingMessage("supplier")}
-                        className="text-xs"
+                        className="text-[10px] font-bold uppercase tracking-wider border-border text-muted-foreground hover:bg-muted hover:text-foreground"
                       >
-                        <MessageCircle size={12} className="mr-1" />Add Message
+                        <MessageCircle size={12} className="mr-1.5" />
+                        Add First Message
                       </Button>
                     </div>
                   )}
@@ -682,13 +688,13 @@ export function ScenarioDetailDialog({
           </Collapsible>
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t-0 bg-transparent m-0">
+        <DialogFooter className="px-6 py-4 border-t border-border bg-muted/20 m-0">
           <Button
             size="lg"
             variant="outline"
             onClick={handleUpdateOnly}
             disabled={isUpdating}
-            className="border-stone-300 text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:border-stone-600 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"
+            className="flex-1 sm:flex-none border-border text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <Edit size={16} className="mr-2" />
             Update Only
@@ -697,10 +703,10 @@ export function ScenarioDetailDialog({
             size="lg"
             onClick={handleUpdateAndLoad}
             disabled={isUpdating}
-            className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white"
+            className="flex-1 sm:flex-none bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-sm"
           >
             <Edit size={16} className="mr-2" />
-            Update + Load Playground
+            Update + Load
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -122,14 +122,14 @@ export function AgentTrace({ messages, isStreaming }: AgentTraceProps) {
   }
 
   return (
-    <Card className="border-stone-200 bg-white/70 shadow-sm dark:border-stone-700 dark:bg-stone-900/60">
+    <Card className="border-border bg-card shadow-sm">
       <CardContent className="p-4">
         <div className="mb-3 flex items-center gap-2">
-          <h3 className="text-sm font-medium text-stone-900 dark:text-stone-100">
+          <h3 className="text-sm font-serif font-semibold text-foreground">
             Agent Trace
           </h3>
           {isStreaming && (
-            <Badge variant="outline" className="h-5 gap-1 px-1.5 text-xs">
+            <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px] font-bold uppercase tracking-wider">
               <Loader2 size={10} className="animate-spin" />
               Running
             </Badge>
@@ -138,7 +138,7 @@ export function AgentTrace({ messages, isStreaming }: AgentTraceProps) {
 
         {/* Waiting state */}
         {showWaiting && (
-          <div className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 size={14} className="animate-spin" />
             <span>Starting agent...</span>
           </div>
@@ -150,23 +150,22 @@ export function AgentTrace({ messages, isStreaming }: AgentTraceProps) {
             <div
               key={event.id}
               className={cn(
-                "flex items-start gap-2 rounded-lg border p-2 text-sm transition-all",
+                "flex items-start gap-3 rounded-lg border p-3 text-sm transition-all",
                 event.status === "done" &&
-                  "border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/20",
+                  "border-success/20 bg-success/5",
                 event.status === "active" &&
-                  "border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-900/20",
+                  "border-primary/30 bg-primary/5",
                 event.status === "pending" &&
-                  "border-stone-200 bg-stone-50/50 dark:border-stone-700 dark:bg-stone-800/20",
+                  "border-border bg-muted/30",
               )}
             >
               <div
                 className={cn(
                   "mt-0.5 flex h-6 w-6 items-center justify-center rounded-full",
-                  event.type === "agent" && "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
-                  event.type === "skill" && "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
-                  event.type === "tool" && "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
-                  event.status === "done" && "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
-                  event.status === "active" && "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
+                  event.type === "agent" && "bg-primary/10 text-primary",
+                  event.type === "skill" && "bg-primary/10 text-primary",
+                  event.type === "tool" && "bg-primary/10 text-primary",
+                  event.status === "done" && "bg-success/10 text-success",
                 )}
               >
                 {event.status === "done" ? (
@@ -175,24 +174,19 @@ export function AgentTrace({ messages, isStreaming }: AgentTraceProps) {
                   event.icon
                 )}
               </div>
-              <div className="flex-1">
-                <div className="font-medium text-stone-900 dark:text-stone-100">
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-foreground truncate">
                   {event.title}
                 </div>
                 {event.description && (
-                  <div className="text-xs text-stone-500 dark:text-stone-400">
+                  <div className="text-xs text-muted-foreground line-clamp-1">
                     {event.description}
                   </div>
                 )}
               </div>
               <Badge
                 variant="secondary"
-                className={cn(
-                  "h-5 text-xs",
-                  event.type === "agent" && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-                  event.type === "skill" && "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-                  event.type === "tool" && "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-                )}
+                className="h-5 text-[10px] font-bold uppercase tracking-wider px-1.5"
               >
                 {event.type}
               </Badge>

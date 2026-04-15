@@ -30,8 +30,8 @@ function SkeletonBubble({ align }: { align: "left" | "right" }) {
         className={cn(
           "h-8 w-8 flex-shrink-0 animate-pulse rounded-full",
           align === "right"
-            ? "bg-orange-200/60 dark:bg-orange-800/30"
-            : "bg-stone-200/60 dark:bg-stone-700/40",
+            ? "bg-primary/20"
+            : "bg-muted",
         )}
       />
       <div
@@ -44,8 +44,8 @@ function SkeletonBubble({ align }: { align: "left" | "right" }) {
           className={cn(
             "h-4 animate-pulse rounded-lg",
             align === "right"
-              ? "bg-orange-200/40 dark:bg-orange-800/20"
-              : "bg-stone-200/40 dark:bg-stone-700/30",
+              ? "bg-primary/10"
+              : "bg-muted/60",
             "w-48",
           )}
         />
@@ -53,8 +53,8 @@ function SkeletonBubble({ align }: { align: "left" | "right" }) {
           className={cn(
             "h-4 animate-pulse rounded-lg",
             align === "right"
-              ? "bg-orange-200/40 dark:bg-orange-800/20"
-              : "bg-stone-200/40 dark:bg-stone-700/30",
+              ? "bg-primary/10"
+              : "bg-muted/60",
             "w-32",
           )}
         />
@@ -79,18 +79,18 @@ function LoadingSkeleton() {
 function EmptyState() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-stone-100/80 dark:bg-stone-800/50">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
         <Bot
           size={24}
           strokeWidth={1.5}
-          className="text-stone-400 dark:text-stone-500"
+          className="text-muted-foreground"
         />
       </div>
       <div className="space-y-1.5">
-        <p className="text-sm font-medium text-stone-600 dark:text-stone-400">
+        <p className="text-sm font-medium text-foreground">
           No conversation yet
         </p>
-        <p className="text-xs text-stone-400 dark:text-stone-500">
+        <p className="text-xs text-muted-foreground">
           Process a conversation to preview it here
         </p>
       </div>
@@ -104,7 +104,7 @@ function ChatMessage({
   onEdit,
   onDelete,
 }: {
-  message: ConversationMessage;
+  message: ChatMessage;
   index: number;
   onEdit?: (index: number, newContent: string) => void;
   onDelete?: (index: number) => void;
@@ -156,10 +156,10 @@ function ChatMessage({
       <div className="flex flex-shrink-0 flex-col items-center gap-1">
         <div
           className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-full shadow-sm",
+            "flex h-8 w-8 items-center justify-center rounded-full shadow-sm transition-colors",
             isUser
-              ? "bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-orange-500/20 dark:from-orange-600 dark:to-amber-600"
-              : "bg-stone-200/80 text-stone-600 shadow-stone-300/20 dark:bg-stone-700/60 dark:text-stone-300",
+              ? "bg-primary text-primary-foreground shadow-primary/20"
+              : "bg-muted text-muted-foreground shadow-sm",
           )}
         >
           {isUser ? (
@@ -176,13 +176,13 @@ function ChatMessage({
                   onDelete(index);
                   setConfirmingDelete(false);
                 }}
-                className="rounded-md px-1.5 py-0.5 text-[10px] font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                className="rounded-md px-1.5 py-0.5 text-[10px] font-medium text-destructive transition-colors hover:bg-destructive/10"
               >
                 Delete
               </button>
               <button
                 onClick={() => setConfirmingDelete(false)}
-                className="rounded-md px-1.5 py-0.5 text-[10px] text-stone-400 transition-colors hover:text-stone-600 dark:hover:text-stone-300"
+                className="rounded-md px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
               >
                 Cancel
               </button>
@@ -190,7 +190,7 @@ function ChatMessage({
           ) : (
             <button
               onClick={() => setConfirmingDelete(true)}
-              className="rounded-md p-0.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-red-500 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+              className="rounded-md p-0.5 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
             >
               <Trash2 size={12} strokeWidth={2} />
             </button>
@@ -210,8 +210,8 @@ function ChatMessage({
             className={cn(
               "flex w-full flex-col gap-2 rounded-2xl px-3.5 py-2.5",
               isUser
-                ? "rounded-tr-sm bg-gradient-to-br from-orange-500/10 to-amber-500/10 ring-1 ring-orange-400/40 dark:from-orange-600/10 dark:to-amber-600/10 dark:ring-orange-500/30"
-                : "rounded-tl-sm bg-stone-100/90 ring-1 ring-stone-300/60 dark:bg-stone-800/60 dark:ring-stone-600/40",
+                ? "rounded-tr-sm bg-primary/5 ring-1 ring-primary/20"
+                : "rounded-tl-sm bg-muted ring-1 ring-border",
             )}
           >
             <textarea
@@ -222,22 +222,20 @@ function ChatMessage({
               rows={1}
               className={cn(
                 "w-full resize-none bg-transparent text-sm leading-relaxed outline-none",
-                isUser
-                  ? "text-stone-900 placeholder-stone-400 dark:text-stone-100 dark:placeholder-stone-500"
-                  : "text-stone-700 placeholder-stone-400 dark:text-stone-300 dark:placeholder-stone-500",
+                "text-foreground placeholder:text-muted-foreground/50",
               )}
               placeholder="Edit message..."
             />
             <div className="flex items-center justify-end gap-1.5">
               <button
                 onClick={handleCancel}
-                className="rounded-md px-2 py-1 text-xs text-stone-500 transition-colors hover:bg-stone-200/60 hover:text-stone-700 dark:text-stone-400 dark:hover:bg-stone-700/50 dark:hover:text-stone-300"
+                className="rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="flex items-center gap-1 rounded-md bg-orange-500 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-500"
+                className="flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <Check size={12} strokeWidth={2.5} />
                 Save
@@ -248,10 +246,10 @@ function ChatMessage({
           <>
             <div
               className={cn(
-                "group relative rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
+                "group relative rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed transition-all duration-200",
                 isUser
-                  ? "rounded-tr-sm bg-gradient-to-br from-orange-500 to-amber-500 text-white dark:from-orange-600 dark:to-amber-600"
-                  : "rounded-tl-sm bg-stone-100/90 text-stone-700 dark:bg-stone-800/60 dark:text-stone-300",
+                  ? "rounded-tr-sm bg-primary text-primary-foreground shadow-sm"
+                  : "rounded-tl-sm bg-muted text-foreground",
                 onEdit && "pr-10",
               )}
             >
@@ -259,7 +257,7 @@ function ChatMessage({
               {onEdit && (
                 <button
                   onClick={() => setEditing(true)}
-                  className="absolute -right-1 -top-1 rounded-full p-1 shadow-sm transition-colors bg-white text-stone-500 ring-1 ring-stone-200/80 hover:text-orange-600 dark:bg-stone-800 dark:text-stone-400 dark:ring-stone-700 dark:hover:text-orange-400"
+                  className="absolute -right-1 -top-1 rounded-full p-1 shadow-sm transition-all bg-background text-muted-foreground ring-1 ring-border hover:text-primary hover:scale-110 active:scale-95"
                 >
                   <Pencil size={10} strokeWidth={2.5} />
                 </button>
@@ -271,7 +269,7 @@ function ChatMessage({
               <img
                 src={message.image}
                 alt="Attached"
-                className="max-w-full rounded-lg border border-stone-200/60 dark:border-stone-700/40"
+                className="max-w-full rounded-lg border border-border shadow-sm"
               />
             )}
           </>
@@ -328,7 +326,7 @@ export function ConversationPreviewSidebar({
       {/* Backdrop for mobile */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-background/40 backdrop-blur-[2px] lg:hidden"
           onClick={onClose}
         />
       )}
@@ -336,23 +334,23 @@ export function ConversationPreviewSidebar({
       {/* Sidebar panel */}
       <aside
         className={cn(
-          "fixed right-0 top-0 z-50 flex h-full w-full flex-col border-l border-stone-200/60 bg-white/95 backdrop-blur-xl transition-transform duration-300 ease-in-out dark:border-stone-800 dark:bg-stone-950/95",
-          "lg:w-96",
+          "fixed right-0 top-0 z-50 flex h-full w-full flex-col border-l border-border bg-card transition-transform duration-300 ease-in-out",
+          "lg:w-96 shadow-xl",
           open ? "translate-x-0" : "translate-x-full",
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-stone-200/60 px-4 py-3 dark:border-stone-800">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/20">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
               <Bot size={14} strokeWidth={2.5} />
             </div>
             <div>
-              <h3 className="text-sm font-medium text-stone-900 dark:text-stone-100">
+              <h3 className="text-sm font-serif font-semibold text-foreground">
                 Conversation Preview
               </h3>
               {isLoading && (
-                <p className="text-[10px] text-orange-600 dark:text-orange-400">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-primary animate-pulse">
                   Processing...
                 </p>
               )}
@@ -360,7 +358,7 @@ export function ConversationPreviewSidebar({
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-stone-400 transition-colors hover:bg-stone-100/80 hover:text-stone-600 dark:hover:bg-stone-800/50 dark:hover:text-stone-300"
+            className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-95"
           >
             <X size={16} strokeWidth={2} />
           </button>
@@ -385,16 +383,16 @@ export function ConversationPreviewSidebar({
 
         {/* Add message area */}
         {canAdd && (
-          <div className="border-t border-stone-200/60 dark:border-stone-800">
+          <div className="border-t border-border bg-muted/30">
             {addingRole ? (
               <div className="flex flex-col gap-2 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <div
                     className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-full",
+                      "flex h-6 w-6 items-center justify-center rounded-full transition-colors",
                       addingRole === "user"
-                        ? "bg-gradient-to-br from-orange-500 to-amber-500 text-white dark:from-orange-600 dark:to-amber-600"
-                        : "bg-stone-200/80 text-stone-600 dark:bg-stone-700/60 dark:text-stone-300",
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-muted text-muted-foreground ring-1 ring-border",
                     )}
                   >
                     {addingRole === "user" ? (
@@ -403,7 +401,7 @@ export function ConversationPreviewSidebar({
                       <Bot size={10} strokeWidth={2.5} />
                     )}
                   </div>
-                  <span className="text-xs font-medium text-stone-600 dark:text-stone-400">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     {addingRole === "user" ? "Customer" : "Bot"} message
                   </span>
                 </div>
@@ -414,7 +412,7 @@ export function ConversationPreviewSidebar({
                   onKeyDown={handleAddKeyDown}
                   rows={2}
                   placeholder="Type message..."
-                  className="w-full resize-none rounded-xl border border-stone-200/80 bg-white/80 px-3 py-2 text-sm leading-relaxed text-stone-900 outline-none transition-colors placeholder:text-stone-400 focus:border-orange-400/60 focus:ring-1 focus:ring-orange-400/30 dark:border-stone-700/60 dark:bg-stone-900/80 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-orange-500/40 dark:focus:ring-orange-500/20"
+                  className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm leading-relaxed text-foreground outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary/40 focus:ring-2 focus:ring-primary/10"
                 />
                 <div className="flex items-center justify-end gap-1.5">
                   <button
@@ -422,14 +420,14 @@ export function ConversationPreviewSidebar({
                       setNewContent("");
                       setAddingRole(null);
                     }}
-                    className="rounded-md px-2.5 py-1 text-xs text-stone-500 transition-colors hover:bg-stone-100/80 hover:text-stone-700 dark:text-stone-400 dark:hover:bg-stone-800/50 dark:hover:text-stone-300"
+                    className="rounded-md px-2.5 py-1 text-xs text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleAddSubmit}
                     disabled={!newContent.trim()}
-                    className="flex items-center gap-1 rounded-md bg-orange-500 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-orange-600 dark:hover:bg-orange-500"
+                    className="flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <Plus size={12} strokeWidth={2.5} />
                     Add
@@ -437,17 +435,17 @@ export function ConversationPreviewSidebar({
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 px-4 py-2.5">
+              <div className="flex items-center gap-2 px-4 py-2.5">
                 <button
                   onClick={() => setAddingRole("user")}
-                  className="flex items-center gap-1.5 rounded-lg border border-stone-200/80 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition-colors hover:border-orange-300/60 hover:bg-orange-50/60 hover:text-orange-700 dark:border-stone-700/60 dark:text-stone-400 dark:hover:border-orange-500/30 dark:hover:bg-orange-950/30 dark:hover:text-orange-300"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary active:scale-[0.98]"
                 >
                   <User size={12} strokeWidth={2} />
                   Customer
                 </button>
                 <button
                   onClick={() => setAddingRole("assistant")}
-                  className="flex items-center gap-1.5 rounded-lg border border-stone-200/80 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition-colors hover:border-stone-400/60 hover:bg-stone-100/80 hover:text-stone-800 dark:border-stone-700/60 dark:text-stone-400 dark:hover:border-stone-500/40 dark:hover:bg-stone-800/50 dark:hover:text-stone-200"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary active:scale-[0.98]"
                 >
                   <Bot size={12} strokeWidth={2} />
                   Bot
@@ -458,11 +456,11 @@ export function ConversationPreviewSidebar({
         )}
 
         {/* Footer */}
-        <div className="border-t border-stone-200/60 px-4 py-2.5 dark:border-stone-800">
+        <div className="border-t border-border px-4 py-3 bg-card">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-stone-400 dark:text-stone-500">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
               {isLoading
-                ? "Generating conversation..."
+                ? "Generating..."
                 : messageCount > 0
                   ? `${messageCount} message${messageCount !== 1 ? "s" : ""}`
                   : "No messages"}
@@ -470,9 +468,9 @@ export function ConversationPreviewSidebar({
             {conversation && conversation.length > 0 && (
               <button
                 onClick={onClose}
-                className="text-xs font-medium text-orange-600 transition-colors hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300"
+                className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary transition-colors hover:text-primary/80"
               >
-                Close
+                Close Panel
               </button>
             )}
           </div>

@@ -10,8 +10,8 @@ const SectionTitle = React.forwardRef<HTMLHeadingElement, SectionTitleProps>(
     <h3
       ref={ref}
       className={cn(
-        "sticky top-0 z-10 -ml-3 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-stone-400 dark:text-stone-500",
-        divider && "mb-2 border-b border-stone-100 dark:border-stone-800/50",
+        "sticky top-0 z-10 -ml-3 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80",
+        divider && "mb-2 border-b border-border/40",
         className
       )}
       {...props}

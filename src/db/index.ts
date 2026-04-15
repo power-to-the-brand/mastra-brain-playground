@@ -12,5 +12,10 @@ const db = drizzle(DATABASE_URL, { schema });
 export { db };
 
 // Export types and tables
-export { scenarios } from "./schema";
-export type { Scenario, NewScenario } from "./schema";
+export { scenarios, scenarioResults } from "./schema";
+export type {
+  Scenario,
+  NewScenario,
+  ScenarioResult,
+  NewScenarioResult,
+} from "./schema";

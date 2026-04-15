@@ -44,32 +44,32 @@ export function ScenarioInput({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         className={cn(
-          "min-h-[200px] border-stone-200/60 bg-white/40 backdrop-blur-sm text-stone-800 placeholder:text-stone-400 focus:border-orange-300 focus:ring-orange-300/20 dark:border-stone-700/50 dark:bg-stone-900/40 dark:text-stone-200 dark:placeholder:text-stone-600 transition-all duration-300",
+          "min-h-[200px] border-border bg-muted/20 text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 focus:ring-primary/10 transition-all duration-300 rounded-xl",
           disabled && "opacity-60",
         )}
         disabled={disabled}
       />
       <div className="flex items-center justify-between pt-2">
-        <p className="text-[11px] font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
-          Press <kbd className="rounded bg-stone-100 px-1 dark:bg-stone-800">Enter</kbd> to generate
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+          Press <kbd className="rounded-md bg-muted px-1.5 py-0.5 text-foreground ring-1 ring-border">Enter</kbd> to generate
         </p>
         <Button
-          size="sm"
+          size="lg"
           onClick={onGenerate}
           disabled={!canGenerate}
           className={cn(
-            "relative overflow-hidden bg-gradient-to-r from-orange-600 to-amber-600 px-6 font-medium text-white shadow-lg shadow-orange-600/20 transition-all hover:scale-[1.02] hover:shadow-orange-600/30 active:scale-[0.98]",
+            "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-all active:scale-[0.98] font-semibold",
             isLoading && "opacity-70",
           )}
         >
           {isLoading ? (
             <>
-              <Sparkles size={14} className="animate-spin" />
+              <Sparkles size={18} className="mr-2 animate-spin" />
               Generating...
             </>
           ) : (
             <>
-              <Sparkles size={14} />
+              <Sparkles size={18} className="mr-2" />
               Generate Scenario
             </>
           )}

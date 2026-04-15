@@ -28,7 +28,10 @@ import type { ChatMessage, SRData } from "@/types/scenario";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { AgentTrace } from "@/components/agent-trace";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type Message } from "ai";
+import { DefaultChatTransport, UIMessage } from "ai";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { randomUUID } from "node:crypto";
 
 // Streaming state types
 interface StreamResult {
@@ -68,57 +71,61 @@ export default function Home() {
   const [conversationMessages, setConversationMessages] = useState("");
   const [quotationData, setQuotationData] = useState("");
   const [pastSupplierConversation, setPastSupplierConversation] = useState("");
+  const [scenarioId, setScenarioId] = useState<string | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
 
   // Helper to convert messages to line-by-line format
-  const messagesToLineFormat = useCallback((
-    messages: ChatMessage[],
-    {
-      userRolePrefix,
-      botRolePrefix,
-    }: { userRolePrefix?: string; botRolePrefix?: string } = {},
-  ): string => {
-    return messages
-      .map((msg) => {
-        // Use provided role prefix if available, otherwise infer from role
-        const roleLabel =
-          msg.role === "user"
-            ? (userRolePrefix ?? `Customer`)
-            : (botRolePrefix ?? `Sourcy Bot`);
-        return `[${roleLabel}]: ${msg.content}`;
-      })
-      .join("\n");
-  }, []);
+  const messagesToLineFormat = useCallback(
+    (
+      messages: ChatMessage[],
+      {
+        userRolePrefix,
+        botRolePrefix,
+      }: { userRolePrefix?: string; botRolePrefix?: string } = {},
+    ): string => {
+      return messages
+        .map((msg) => {
+          // Use provided role prefix if available, otherwise infer from role
+          const roleLabel =
+            msg.role === "user"
+              ? (userRolePrefix ?? `Customer`)
+              : (botRolePrefix ?? `Sourcy Bot`);
+          return `[${roleLabel}]: ${msg.content}`;
+        })
+        .join("\n");
+    },
+    [],
+  );
 
   // Helper to parse line-by-line format back to messages
-  const lineFormatToMessages = useCallback((
-    text: string,
-    rolePrefix?: string,
-  ): ChatMessage[] => {
-    const lines = text.split("\n");
-    const messages: ChatMessage[] = [];
-    for (const line of lines) {
-      const match = line.match(/^\[(Customer|Bot|Supplier)\]: (.*)$/);
-      if (match) {
-        const roleType = match[1];
-        // Use rolePrefix if provided (for supplier conversation: "Supplier" means Sourcy=user)
-        // Otherwise infer from role: Customer= user, Bot/other = assistant
-        let role: "user" | "assistant";
-        if (rolePrefix === "Supplier") {
-          // When parsing supplier conversation, Supplier = Sourcy (user), Bot = assistant
-          role = roleType === "Supplier" ? "user" : "assistant";
-        } else {
-          // Default: Customer = user, Bot = assistant
-          role = roleType === "Customer" ? "user" : "assistant";
+  const lineFormatToMessages = useCallback(
+    (text: string, rolePrefix?: string): ChatMessage[] => {
+      const lines = text.split("\n");
+      const messages: ChatMessage[] = [];
+      for (const line of lines) {
+        const match = line.match(/^\[(Customer|Bot|Supplier)\]: (.*)$/);
+        if (match) {
+          const roleType = match[1];
+          // Use rolePrefix if provided (for supplier conversation: "Supplier" means Sourcy=user)
+          // Otherwise infer from role: Customer= user, Bot/other = assistant
+          let role: "user" | "assistant";
+          if (rolePrefix === "Supplier") {
+            // When parsing supplier conversation, Supplier = Sourcy (user), Bot = assistant
+            role = roleType === "Supplier" ? "user" : "assistant";
+          } else {
+            // Default: Customer = user, Bot = assistant
+            role = roleType === "Customer" ? "user" : "assistant";
+          }
+          messages.push({
+            role,
+            content: match[2],
+          });
         }
-        messages.push({
-          role,
-          content: match[2],
-        });
       }
-    }
-    return messages;
-  }, []);
+      return messages;
+    },
+    [],
+  );
 
   // Load from sessionStorage on mount (one-time load behavior)
   useEffect(() => {
@@ -126,6 +133,11 @@ export default function Home() {
       const conversation = sessionStorage.getItem("scenario_conversation");
       const srData = sessionStorage.getItem("scenario_sr_data");
       const supplierChat = sessionStorage.getItem("scenario_supplier_chat");
+      const id = sessionStorage.getItem("scenario_id");
+
+      if (id) {
+        setScenarioId(id);
+      }
 
       if (conversation) {
         try {
@@ -167,6 +179,7 @@ export default function Home() {
       sessionStorage.removeItem("scenario_conversation");
       sessionStorage.removeItem("scenario_sr_data");
       sessionStorage.removeItem("scenario_supplier_chat");
+      sessionStorage.removeItem("scenario_id");
     };
 
     loadFromSessionStorage();
@@ -191,23 +204,57 @@ export default function Home() {
     [],
   );
 
-  const onFinish = useCallback((message: Message) => {
-    console.log("Stream finished", message);
-    if (message.role === "assistant") {
-      const textParts = message.parts?.filter(
-        (part) => part.type === "text",
-      ) as Array<{ type: "text"; text: string }>;
-      const content = textParts?.map((p) => p.text).join("") || "";
+  const onFinish = useCallback(
+    ({ message }: { message: UIMessage }) => {
+      console.log("Stream finished", message);
+      if (message.role === "assistant") {
+        // Use message.content if available, otherwise join text parts
+        let content = message.content || "";
 
-      console.log("Parsing content:", content.substring(0, 100) + "...");
-      const result = extractJSON(content);
-      console.log("Parse result:", result);
+        if (!content && message.parts) {
+          const textParts = message.parts.filter(
+            (part) => part.type === "text",
+          ) as Array<{ type: "text"; text: string }>;
+          // Take only the last part as it contains the final structured outcome
+          content = textParts[textParts.length - 1]?.text || "";
+        }
 
-      if (result && (result.summary || result.tickets)) {
-        setAgentResult(result);
+        console.log(
+          "Final content for saving:",
+          content.substring(0, 100) + "...",
+        );
+
+        if (content) {
+          const result = extractJSON(content);
+          if (result && (result.summary || result.tickets)) {
+            setAgentResult(result);
+          }
+
+          // Save result to local API
+          fetch(`/api/scenario-results`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              scenarioId: scenarioId || undefined,
+              finalOutput: content,
+              agentName: "supervisor-agent-v3",
+            }),
+          })
+            .then((res) => {
+              if (!res.ok) {
+                console.error("Failed to save result, status:", res.status);
+              } else {
+                console.log("Scenario result saved successfully");
+              }
+            })
+            .catch((err) => {
+              console.error("Failed to save scenario result:", err);
+            });
+        }
       }
-    }
-  }, []);
+    },
+    [scenarioId],
+  );
 
   const { messages, sendMessage, status } = useChat({
     id: "supervisor-v3-chat",
@@ -275,8 +322,7 @@ export default function Home() {
 
     // Extract SR ID from quotation data if available
     const q = quotationParsed as { runId?: string; srId?: string } | null;
-    const srId =
-      q?.runId || q?.srId || "SR-PLAYGROUND-001";
+    const srId = q?.runId || q?.srId || new Date().toISOString();
 
     // Build the prompt with all required context
     const prompt = `SR ID: ${srId}
@@ -348,7 +394,7 @@ Return your analysis and recommended actions in JSON format.`;
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-stone-50/50 text-stone-800 dark:bg-stone-950 dark:text-stone-100">
+      <div className="min-h-screen bg-background text-foreground">
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -356,26 +402,27 @@ Return your analysis and recommended actions in JSON format.`;
 
         <main
           className={cn(
-            "ml-0 transition-all duration-300 w-full",
+            "ml-0 transition-all duration-300",
             sidebarCollapsed ? "sm:ml-20" : "sm:ml-64",
             previewOpen && "lg:pr-96",
           )}
         >
           {/* Top Bar */}
-          <header className="sticky top-0 z-40 border-b border-stone-200/60 bg-stone-50/80 px-4 sm:px-6 py-3 sm:py-4 backdrop-blur-md dark:border-stone-800 dark:bg-stone-950/80">
-            <div className="w-full max-w-7xl flex items-center justify-between px-4 sm:px-6">
+          <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm">
+            <div className="mx-auto w-full max-w-7xl flex h-16 items-center justify-between px-6">
               <div>
-                <h1 className="text-xl font-serif font-bold tracking-tight text-stone-900 dark:text-stone-100">
+                <h1 className="font-serif text-xl font-bold tracking-tight text-foreground">
                   Mastra Brain
                 </h1>
-                <p className="text-sm text-stone-500 dark:text-stone-400">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
                   Playground
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-700/20 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-400/20">
+                <span className="inline-flex items-center gap-2 rounded-full bg-success/10 px-3 py-1 text-[11px] font-bold text-success uppercase tracking-wider border border-success/20">
                   <span className="relative flex h-2 w-2">
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
                   </span>
                   Ready
                 </span>
@@ -384,39 +431,41 @@ Return your analysis and recommended actions in JSON format.`;
           </header>
 
           {/* Main Content */}
-          <div className="w-full max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
             {/* Hero Section */}
             <div className="mb-8 sm:mb-10 text-center sm:text-left animate-fade-in-up">
-              <h2 className="text-2xl sm:text-3xl font-serif font-semibold text-stone-900 dark:text-stone-100 mb-2 sm:mb-3">
+              <h2 className="text-2xl sm:text-3xl font-serif font-semibold text-foreground mb-2 sm:mb-3">
                 Welcome to your workspace
               </h2>
-              <p className="text-sm sm:text-base text-stone-600 dark:text-stone-400 max-w-2xl mx-auto sm:mx-0">
+              <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto sm:mx-0">
                 Provide the inputs below and run the brain to process your data.
                 Your warm, cozy workspace awaits.
               </p>
             </div>
 
-            <div className="animate-fade-in-up animation-delay-200 max-w-3xl sm:mx-0">
-              <Card className="border-stone-200 bg-white/70 shadow-sm shadow-stone-200/50 backdrop-blur-sm dark:border-stone-800 dark:bg-stone-900/60 dark:shadow-none">
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium text-stone-900 dark:text-stone-100">
+            <div className="animate-fade-in-up animation-delay-200">
+              <Card className="border-border bg-card shadow-sm ring-1 ring-border/5">
+                <CardHeader className="border-b border-border/50 pb-6">
+                  <CardTitle className="font-serif text-xl font-bold">
                     Input Data
                   </CardTitle>
-                  <CardDescription className="text-stone-500 dark:text-stone-400">
-                    Paste your data below and click &ldquo;Run Brain&rdquo; to
-                    process
+                  <CardDescription className="text-sm">
+                    Configure your scenario inputs to run the Mastra Brain
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                   <Accordion type="multiple" className="space-y-4">
-                    <AccordionItem value="conversation-messages">
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-xs font-medium text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
-                            1
+                    <AccordionItem
+                      value="conversation-messages"
+                      className="border-none"
+                    >
+                      <AccordionTrigger className="hover:no-underline py-2">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-[11px] font-bold text-primary border border-primary/20">
+                            01
                           </div>
-                          <span className="font-medium text-stone-900 dark:text-stone-100">
-                            Conversation Messages
+                          <span className="text-sm font-bold uppercase tracking-wider text-foreground/90">
+                            Conversation History
                           </span>
                         </div>
                       </AccordionTrigger>
@@ -424,11 +473,11 @@ Return your analysis and recommended actions in JSON format.`;
                         <div className="space-y-3">
                           <Label
                             htmlFor="conversation-messages"
-                            className="text-sm font-medium text-stone-700 dark:text-stone-300"
+                            className="text-sm font-medium text-foreground/80"
                           >
                             Paste your conversation messages here
                           </Label>
-                          <p className="text-xs text-stone-500 dark:text-stone-400">
+                          <p className="text-xs text-muted-foreground">
                             Format: Each message on a new line as [Customer]:
                             message or [Bot]: message
                           </p>
@@ -442,7 +491,7 @@ Return your analysis and recommended actions in JSON format.`;
                             onChange={(e) =>
                               setConversationMessages(e.target.value)
                             }
-                            className="border-stone-200 bg-stone-50/50 text-stone-800 placeholder:text-stone-400 focus:border-orange-300 focus:ring-orange-300/20 dark:border-stone-800 dark:bg-stone-950/50 dark:text-stone-200 dark:placeholder:text-stone-600"
+                            className="border-border bg-background/50 text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-primary/20"
                           />
                           {/* Process Conversation Button */}
                           <div className="flex items-center gap-3">
@@ -451,7 +500,7 @@ Return your analysis and recommended actions in JSON format.`;
                               disabled={
                                 !conversationMessages.trim() || isProcessing
                               }
-                              className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-sm shadow-orange-600/20 transition-all duration-300 hover:shadow-md hover:shadow-orange-600/30 focus:ring-orange-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all duration-300 hover:shadow-md focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={handleProcessConversation}
                             >
                               {isProcessing ? (
@@ -467,14 +516,14 @@ Return your analysis and recommended actions in JSON format.`;
                               )}
                             </Button>
                             {processingError && (
-                              <p className="text-xs text-red-600 dark:text-red-400">
+                              <p className="text-xs text-destructive">
                                 {processingError}
                               </p>
                             )}
                             {previewConversation && !processingError && (
                               <button
                                 onClick={() => setPreviewOpen(true)}
-                                className="text-xs font-medium text-orange-600 transition-colors hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300"
+                                className="text-xs font-bold uppercase tracking-wider text-primary transition-colors hover:text-primary/80"
                               >
                                 View in sidebar →
                               </button>
@@ -484,14 +533,17 @@ Return your analysis and recommended actions in JSON format.`;
                       </AccordionContent>
                     </AccordionItem>
 
-                    <AccordionItem value="quotation-data">
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                            2
+                    <AccordionItem
+                      value="quotation-data"
+                      className="border-none"
+                    >
+                      <AccordionTrigger className="hover:no-underline py-2">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-[11px] font-bold text-primary border border-primary/20">
+                            02
                           </div>
-                          <span className="font-medium text-stone-900 dark:text-stone-100">
-                            Quotation Data
+                          <span className="text-sm font-bold uppercase tracking-wider text-foreground/90">
+                            Quotation Context
                           </span>
                         </div>
                       </AccordionTrigger>
@@ -499,11 +551,11 @@ Return your analysis and recommended actions in JSON format.`;
                         <div className="space-y-3">
                           <Label
                             htmlFor="quotation-data"
-                            className="text-sm font-medium text-stone-700 dark:text-stone-300"
+                            className="text-sm font-medium text-foreground/80"
                           >
                             Paste your quotation data here
                           </Label>
-                          <p className="text-xs text-stone-500 dark:text-stone-400">
+                          <p className="text-xs text-muted-foreground">
                             Format: JSON with SR data (runId,
                             original_requirement, specs, etc.)
                           </p>
@@ -519,20 +571,23 @@ Return your analysis and recommended actions in JSON format.`;
                             rows={6}
                             value={quotationData}
                             onChange={(e) => setQuotationData(e.target.value)}
-                            className="border-stone-200 bg-stone-50/50 text-stone-800 placeholder:text-stone-400 focus:border-orange-300 focus:ring-orange-300/20 dark:border-stone-800 dark:bg-stone-950/50 dark:text-stone-200 dark:placeholder:text-stone-600"
+                            className="border-border bg-background/50 text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-primary/20"
                           />
                         </div>
                       </AccordionContent>
                     </AccordionItem>
 
-                    <AccordionItem value="past-supplier-conversation">
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-xs font-medium text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-                            3
+                    <AccordionItem
+                      value="past-supplier-conversation"
+                      className="border-none"
+                    >
+                      <AccordionTrigger className="hover:no-underline py-2">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-[11px] font-bold text-primary border border-primary/20">
+                            03
                           </div>
-                          <span className="font-medium text-stone-900 dark:text-stone-100">
-                            Past Supplier Conversation
+                          <span className="text-sm font-bold uppercase tracking-wider text-foreground/90">
+                            Supplier Dialogue
                           </span>
                         </div>
                       </AccordionTrigger>
@@ -540,11 +595,11 @@ Return your analysis and recommended actions in JSON format.`;
                         <div className="space-y-3">
                           <Label
                             htmlFor="past-supplier-conversation"
-                            className="text-sm font-medium text-stone-700 dark:text-stone-300"
+                            className="text-sm font-medium text-foreground/80"
                           >
                             Paste past supplier conversation here
                           </Label>
-                          <p className="text-xs text-stone-500 dark:text-stone-400">
+                          <p className="text-xs text-muted-foreground">
                             Format: Each message on a new line as [Supplier]:
                             message or [Bot]: message
                           </p>
@@ -557,17 +612,17 @@ Return your analysis and recommended actions in JSON format.`;
                             onChange={(e) =>
                               setPastSupplierConversation(e.target.value)
                             }
-                            className="border-stone-200 bg-stone-50/50 text-stone-800 placeholder:text-stone-400 focus:border-orange-300 focus:ring-orange-300/20 dark:border-stone-800 dark:bg-stone-950/50 dark:text-stone-200 dark:placeholder:text-stone-600"
+                            className="border-border bg-background/50 text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-primary/20"
                           />
                         </div>
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
 
-                  <div className="mt-6 pt-4 border-t border-stone-200 dark:border-stone-700">
+                  <div className="mt-6 pt-4 border-t border-border">
                     <Button
                       size="lg"
-                      className="w-full sm:w-auto bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-md shadow-orange-600/20 transition-all duration-300 hover:shadow-lg hover:shadow-orange-600/30 focus:ring-orange-500/50"
+                      className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all duration-300 hover:shadow-lg focus:ring-primary/50"
                       disabled={isRunningAgent}
                       onClick={handleRunAgent}
                     >
@@ -584,7 +639,7 @@ Return your analysis and recommended actions in JSON format.`;
                       )}
                     </Button>
                     {agentError && (
-                      <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                      <p className="mt-2 text-xs text-destructive">
                         {agentError}
                       </p>
                     )}
@@ -596,36 +651,60 @@ Return your analysis and recommended actions in JSON format.`;
               {hasStarted && (
                 <div className="mt-6 animate-fade-in-up space-y-4">
                   {/* Agent Trace - shows what agents/skills are being called */}
-                  <AgentTrace messages={messages} isStreaming={isRunningAgent} />
+                  {/* <AgentTrace
+                    messages={messages}
+                    isStreaming={isRunningAgent}
+                  /> */}
 
                   {/* Live text output */}
-                  <Card className="border-orange-200 bg-gradient-to-br from-orange-50/80 to-amber-50/80 dark:border-orange-800 dark:from-orange-950/40 dark:to-amber-950/40">
-                    <CardHeader className="pb-3">
+                  <Card className="border-primary/20 bg-primary/5 shadow-inner ring-1 ring-primary/5">
+                    <CardHeader className="pb-3 border-b border-primary/10">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
-                          <Brain className={cn("h-5 w-5 text-orange-600 dark:text-orange-400", isRunningAgent && "animate-pulse")} />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 shadow-sm">
+                          <Brain
+                            className={cn(
+                              "h-5 w-5 text-primary",
+                              isRunningAgent && "animate-pulse",
+                            )}
+                          />
                         </div>
                         <div>
-                          <CardTitle className="text-base font-medium text-orange-900 dark:text-orange-100">
-                            {isRunningAgent ? "Brain Processing" : "Brain Output"}
+                          <CardTitle className="text-base font-serif font-bold text-primary/90">
+                            {isRunningAgent
+                              ? "Neural Processing..."
+                              : "Brain Output"}
                           </CardTitle>
-                          <p className="text-xs text-orange-600/70 dark:text-orange-400/70">
-                            {isRunningAgent ? "Analyzing conversation and creating tickets..." : "Processing complete"}
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60">
+                            {isRunningAgent
+                              ? "Analyzing data streams"
+                              : "Process execution log"}
                           </p>
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="rounded-lg bg-white/60 dark:bg-stone-900/60 p-4 font-mono text-sm">
+                    <CardContent className="pt-4">
+                      <div className="font-mono text-sm">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className={cn("h-2 w-2 rounded-full", isRunningAgent ? "animate-pulse bg-green-500" : "bg-green-500")} />
-                          <span className="text-xs text-stone-500 dark:text-stone-400">
+                          <span
+                            className={cn(
+                              "h-2 w-2 rounded-full",
+                              isRunningAgent
+                                ? "animate-pulse bg-success"
+                                : "bg-success",
+                            )}
+                          />
+                          <span className="text-xs text-muted-foreground font-sans">
                             {isRunningAgent ? "Live output" : "Final output"}
                           </span>
                         </div>
-                        <pre className="whitespace-pre-wrap text-stone-700 dark:text-stone-300 max-h-48 overflow-y-auto">
-                          {streamingText || (isRunningAgent ? "Connecting to brain..." : "Final result received")}
-                        </pre>
+                        <div className="prose prose-stone dark:prose-invert max-w-none overflow-y-auto max-h-[600px] min-h-[200px] pr-4">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {streamingText ||
+                              (isRunningAgent
+                                ? "Connecting to brain..."
+                                : "Final result received")}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -634,39 +713,40 @@ Return your analysis and recommended actions in JSON format.`;
 
               {/* Supervisor Agent Result */}
               {agentResult && !isRunningAgent && (
-                <div className="mt-6 animate-fade-in-up">
-                  <Card className="border-stone-200 bg-white/70 shadow-sm shadow-stone-200/50 backdrop-blur-sm dark:border-stone-800 dark:bg-stone-900/60 dark:shadow-none">
-                    <CardHeader>
-                      <CardTitle className="text-lg font-medium text-stone-900 dark:text-stone-100">
-                        Supervisor Agent V3 Result
+                <div className="mt-8 animate-fade-in-up">
+                  <Card className="border-border bg-card shadow-md ring-1 ring-border/5">
+                    <CardHeader className="border-b border-border/50 pb-6">
+                      <CardTitle className="font-serif text-xl font-bold">
+                        Supervisor Analysis
                       </CardTitle>
-                      <CardDescription className="text-stone-500 dark:text-stone-400">
-                        Analysis and recommended actions from the supervisor
-                        agent
+                      <CardDescription className="text-sm">
+                        Executive summary and structured actionable tickets
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
+                    <CardContent className="pt-6">
+                      <div className="space-y-8">
                         {/* Summary */}
                         {agentResult.summary && (
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium text-stone-700 dark:text-stone-300">
+                          <div className="space-y-3">
+                            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                               Conversation Summary
                             </Label>
-                            <div className="rounded-lg border border-stone-200 bg-stone-50/50 p-4 text-sm text-stone-800 dark:border-stone-700 dark:bg-stone-900/30 dark:text-stone-300">
-                              {agentResult.summary}
+                            <div className="rounded-xl border border-border/60 bg-muted/20 p-5 text-[15px] leading-relaxed text-foreground/90 font-serif italic">
+                              &ldquo;{agentResult.summary}&rdquo;
                             </div>
                           </div>
                         )}
 
                         {/* Current Ask */}
                         {agentResult.currentAsk && (
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium text-stone-700 dark:text-stone-300">
-                              Current Ask
+                          <div className="space-y-3">
+                            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                              Primary Request
                             </Label>
-                            <div className="rounded-lg border border-stone-200 bg-orange-50/50 p-4 text-sm text-stone-800 dark:border-stone-700 dark:bg-orange-900/20 dark:text-stone-300">
-                              {agentResult.currentAsk}
+                            <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 shadow-sm ring-1 ring-primary/10">
+                              <p className="text-base font-serif font-bold text-foreground leading-relaxed">
+                                {agentResult.currentAsk}
+                              </p>
                             </div>
                           </div>
                         )}
@@ -674,46 +754,48 @@ Return your analysis and recommended actions in JSON format.`;
                         {/* Tickets */}
                         {agentResult.tickets &&
                           agentResult.tickets.length > 0 && (
-                            <div className="space-y-3">
-                              <Label className="text-sm font-medium text-stone-700 dark:text-stone-300">
-                                Created Tickets ({agentResult.tickets.length})
+                            <div className="space-y-4">
+                              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                Actionable Tickets ({agentResult.tickets.length}
+                                )
                               </Label>
-                              {agentResult.tickets.map((ticket, idx) => (
-                                <div
-                                  key={idx}
-                                  className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm dark:border-stone-700 dark:bg-stone-900/50"
-                                >
-                                  <div className="flex items-center justify-between mb-3">
-                                    <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                                      {ticket.assignee}
-                                    </span>
-                                    <span className="text-xs text-stone-500 dark:text-stone-400">
-                                      {ticket.srId}
-                                    </span>
-                                  </div>
-                                  <div className="space-y-2">
-                                    <div>
-                                      <span className="inline-flex items-center rounded bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                                        {ticket.payload.action.replace(
-                                          /_/g,
-                                          " ",
-                                        )}
+                              <div className="grid gap-4 sm:grid-cols-2">
+                                {agentResult.tickets.map((ticket, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="group rounded-xl border border-border bg-background/50 p-5 shadow-sm hover:border-primary/40 hover:shadow-md transition-all duration-300"
+                                  >
+                                    <div className="flex items-center justify-between mb-4">
+                                      <span className="inline-flex items-center rounded-lg bg-secondary/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-secondary-foreground border border-border/50">
+                                        {ticket.assignee}
+                                      </span>
+                                      <span className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-tighter">
+                                        {ticket.srId}
                                       </span>
                                     </div>
-                                    <p className="text-sm text-stone-700 dark:text-stone-300">
-                                      {ticket.payload.details}
-                                    </p>
-                                    {ticket.payload.context && (
-                                      <p className="text-xs text-stone-500 dark:text-stone-500">
-                                        <span className="font-medium">
-                                          Context:
-                                        </span>{" "}
-                                        {ticket.payload.context}
+                                    <div className="space-y-3">
+                                      <div>
+                                        <span className="inline-flex items-center rounded bg-primary/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-primary border border-primary/10">
+                                          {ticket.payload.action.replace(
+                                            /_/g,
+                                            " ",
+                                          )}
+                                        </span>
+                                      </div>
+                                      <p className="text-[14px] text-foreground/90 leading-snug font-medium">
+                                        {ticket.payload.details}
                                       </p>
-                                    )}
+                                      {ticket.payload.context && (
+                                        <div className="border-t border-border/40 mt-3 pt-3">
+                                          <p className="text-[12px] text-muted-foreground leading-relaxed italic line-clamp-2 group-hover:line-clamp-none transition-all">
+                                            {ticket.payload.context}
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
                             </div>
                           )}
                       </div>
@@ -756,4 +838,3 @@ Return your analysis and recommended actions in JSON format.`;
     </ToastProvider>
   );
 }
-

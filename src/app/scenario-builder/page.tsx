@@ -106,7 +106,7 @@ export default function ScenarioBuilderPage() {
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-stone-50/50 text-stone-800 dark:bg-stone-950 dark:text-stone-100">
+      <div className="min-h-screen bg-background text-foreground">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -114,25 +114,25 @@ export default function ScenarioBuilderPage() {
 
       <main
         className={cn(
-          "ml-0 transition-all duration-300 w-full",
+          "ml-0 transition-all duration-300",
           sidebarCollapsed ? "sm:ml-20" : "sm:ml-64",
         )}
       >
         {/* Top Bar */}
-        <header className="sticky top-0 z-40 border-b border-stone-200/60 bg-stone-50/80 px-4 sm:px-6 py-4 backdrop-blur-md dark:border-stone-800 dark:bg-stone-950/80">
-          <div className="w-full max-w-4xl flex items-center justify-between pl-2 sm:pl-8">
+        <header className="sticky top-0 z-40 border-b border-border bg-background/95 px-4 sm:px-6 py-4 backdrop-blur-sm">
+          <div className="mx-auto w-full max-w-4xl flex items-center justify-between px-4 sm:px-6">
             <div>
-              <h1 className="text-2xl font-serif italic tracking-tight text-stone-900 dark:text-stone-100">
+              <h1 className="text-2xl font-serif font-bold tracking-tight text-foreground">
                 Scenario Builder
               </h1>
-              <p className="text-sm text-stone-500 dark:text-stone-400">
+              <p className="text-sm text-muted-foreground">
                 Generate complete testing scenarios with AI
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-700/20 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-400/20">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary ring-1 ring-primary/20">
                 <span className="relative flex h-2 w-2">
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
                 </span>
                 Ready
               </span>
@@ -141,7 +141,7 @@ export default function ScenarioBuilderPage() {
         </header>
 
         {/* Main Content */}
-        <div className="w-full max-w-4xl px-4 sm:px-6 pl-6 sm:pl-14 py-8 sm:py-12">
+        <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 py-8 sm:py-12">
           <div className="animate-fade-in-up">
             {scenarioResults ? (
               <Card className="border-none bg-transparent shadow-none">
@@ -162,15 +162,15 @@ export default function ScenarioBuilderPage() {
               </Card>
             ) : (
               <Card className="border-none bg-transparent shadow-none">
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium text-stone-900 dark:text-stone-100">
+                <CardHeader className="px-0">
+                  <CardTitle className="text-lg font-serif font-semibold text-foreground">
                     Input Scenario
                   </CardTitle>
-                  <CardDescription className="text-stone-500 dark:text-stone-400">
+                  <CardDescription className="text-muted-foreground">
                     Describe your scenario to generate a complete conversation, SR data, and supplier chat history
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-0">
                   <div className="space-y-6">
                     <div className="space-y-3">
                       <ScenarioInput
@@ -181,7 +181,7 @@ export default function ScenarioBuilderPage() {
                         disabled={isGeneratingScenario}
                       />
                       {processingError && (
-                        <p className="text-xs text-red-600 dark:text-red-400">
+                        <p className="text-xs text-destructive">
                           {processingError}
                         </p>
                       )}

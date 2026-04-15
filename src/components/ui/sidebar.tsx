@@ -48,7 +48,7 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
       <aside
         ref={ref}
         className={cn(
-          "fixed left-0 top-0 z-50 h-full flex-col border-r border-stone-200/60 bg-stone-50/80 backdrop-blur-xl transition-all duration-300 hover:bg-stone-50/90 dark:border-stone-800 dark:bg-stone-950/80 dark:hover:bg-stone-950/90",
+          "fixed left-0 top-0 z-50 h-full flex-col border-r border-border bg-sidebar transition-all duration-300",
           collapsed ? "w-20" : "w-64",
           className,
         )}
@@ -57,25 +57,25 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         {/* Header */}
         <div className="flex h-16 items-center justify-between px-4">
           {!collapsed && (
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-sm shadow-orange-500/20">
-                <span className="font-bold">M</span>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+                <span className="font-bold text-sm">M</span>
               </div>
-              <span className="font-serif text-lg font-medium tracking-tight text-stone-700 dark:text-stone-200">
+              <span className="font-serif text-lg font-bold tracking-tight text-foreground">
                 Mastra
               </span>
             </div>
           )}
           {collapsed && (
-            <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-sm shadow-orange-500/20">
-              <span className="font-bold">M</span>
+            <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+              <span className="font-bold text-sm">M</span>
             </div>
           )}
           <button
             onClick={onToggle}
-            className="relative -mr-1 rounded-lg p-1.5 text-stone-400 transition-colors hover:bg-stone-200/50 hover:text-stone-600 focus-visible:bg-stone-200/50 focus-visible:text-stone-600 dark:hover:bg-stone-800/50 dark:hover:text-stone-300"
+            className="relative -mr-1 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-secondary hover:text-foreground focus-visible:bg-secondary focus-visible:text-foreground active:scale-95"
           >
-            <Menu size={18} strokeWidth={1.5} />
+            <Menu size={18} strokeWidth={2} />
           </button>
         </div>
 
@@ -107,17 +107,17 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         </div>
 
         {/* Sidebar Footer - Status Indicator */}
-        <div className="border-t border-stone-200/60 px-4 py-3 dark:border-stone-800">
+        <div className="border-t border-border px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="relative flex h-2.5 w-2.5 flex-none items-center justify-center">
-              <span className="absolute inline-flex h-2.5 w-2.5 animate-ping rounded-full bg-emerald-400/40 dark:bg-emerald-500/20" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-stone-900" />
+              <span className="absolute inline-flex h-2.5 w-2.5 animate-ping rounded-full bg-success/40" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-success ring-2 ring-background" />
             </div>
             <div className="space-y-0.5">
-              <p className="text-xs font-medium text-stone-600 dark:text-stone-400">
+              <p className="text-xs font-medium text-foreground/80">
                 System Online
               </p>
-              <p className="text-[10px] text-stone-400 dark:text-stone-500">
+              <p className="text-[10px] text-muted-foreground">
                 All systems operational
               </p>
             </div>

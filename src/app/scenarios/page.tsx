@@ -27,6 +27,7 @@ import {
 import type { Scenario } from "@/db/schema";
 import { ToastProvider, useToast } from "@/components/ui/toast-provider";
 import { ScenarioDetailDialog } from "@/components/scenario-detail-dialog";
+import { ScenarioResultsDialog } from "@/components/scenario-results-dialog";
 
 interface ScenarioWithMeta extends Scenario {
   conversationMessages: Array<{
@@ -57,6 +58,9 @@ function ScenariosPageContent() {
   const [selectedScenario, setSelectedScenario] =
     useState<ScenarioWithMeta | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [resultsDialogOpen, setResultsDialogOpen] = useState(false);
+  const [selectedScenarioForResults, setSelectedScenarioForResults] =
+    useState<ScenarioWithMeta | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const loadScenarios = async (pageToLoad = page) => {
@@ -185,6 +189,7 @@ function ScenariosPageContent() {
         "scenario_supplier_chat",
         JSON.stringify(data.data.pastSupplierConversation),
       );
+      sessionStorage.setItem("scenario_id", data.data.id);
       sessionStorage.setItem("scenario_name", data.data.name);
 
       addToast(
@@ -230,23 +235,23 @@ function ScenariosPageContent() {
 
   if (loading && scenarios.length === 0) {
     return (
-      <div className="min-h-screen bg-stone-50/50 text-stone-800 dark:bg-stone-950 dark:text-stone-100">
+      <div className="min-h-screen bg-background text-foreground">
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
         <main
           className={cn(
-            "ml-0 transition-all duration-300 w-full",
+            "ml-0 transition-all duration-300",
             sidebarCollapsed ? "sm:ml-20" : "sm:ml-64",
           )}
         >
-          <div className="flex h-[calc(100vh-80px)] items-center justify-center">
+          <div className="flex h-screen items-center justify-center">
             <div className="text-center">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Save className="animate-spin-slow" size={24} />
               </div>
-              <p className="mt-4 text-stone-500 dark:text-stone-400">
+              <p className="mt-4 text-muted-foreground">
                 Loading scenarios...
               </p>
             </div>
@@ -258,7 +263,7 @@ function ScenariosPageContent() {
 
   return (
     <>
-      <div className="min-h-screen bg-stone-50/50 text-stone-800 dark:bg-stone-950 dark:text-stone-100">
+      <div className="min-h-screen bg-background text-foreground">
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -266,26 +271,26 @@ function ScenariosPageContent() {
 
         <main
           className={cn(
-            "ml-0 transition-all duration-300 w-full",
+            "ml-0 transition-all duration-300",
             sidebarCollapsed ? "sm:ml-20" : "sm:ml-64",
           )}
         >
           {/* Top Bar */}
-          <header className="sticky top-0 z-40 border-b border-stone-200/60 bg-stone-50/80 px-4 sm:px-6 py-4 backdrop-blur-md dark:border-stone-800 dark:bg-stone-950/80">
-            <div className="w-full max-w-6xl flex items-center justify-between px-4 sm:px-6">
+          <header className="sticky top-0 z-40 border-b border-border bg-background/95 px-4 sm:px-6 py-4 backdrop-blur-sm">
+            <div className="mx-auto w-full max-w-6xl flex items-center justify-between px-4 sm:px-6">
               <div className="flex items-center gap-3">
                 <div>
-                  <h1 className="text-2xl font-serif italic tracking-tight text-stone-900 dark:text-stone-100">
+                  <h1 className="text-2xl font-serif font-bold tracking-tight text-foreground">
                     Saved Scenarios
                   </h1>
-                  <p className="text-sm text-stone-500 dark:text-stone-400">
+                  <p className="text-sm text-muted-foreground">
                     Manage and reuse your generated scenarios
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Button size="sm" variant="outline" onClick={handleNewScenario}>
-                  <Save size={16} className="mr-2" />
+                <Button size="sm" variant="outline" onClick={handleNewScenario} className="gap-2">
+                  <Save size={16} />
                   New Scenario
                 </Button>
               </div>
@@ -293,16 +298,16 @@ function ScenariosPageContent() {
           </header>
 
           {/* Main Content */}
-          <div className="w-full max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
+          <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
             {error && (
-              <div className="mb-6 rounded-lg border border-red-200 bg-red-50/50 p-4 dark:border-red-900/30 dark:bg-red-900/10">
+              <div className="mb-6 rounded-lg border border-destructive/20 bg-destructive/5 p-4">
                 <div className="flex items-start gap-3">
-                  <X className="mt-0.5 h-5 w-5 text-red-600 dark:text-red-400" />
+                  <X className="mt-0.5 h-5 w-5 text-destructive" />
                   <div>
-                    <h3 className="font-medium text-red-800 dark:text-red-300">
+                    <h3 className="font-medium text-destructive">
                       Error
                     </h3>
-                    <p className="text-sm text-red-600 dark:text-red-400">
+                    <p className="text-sm text-destructive/80">
                       {error}
                     </p>
                   </div>
@@ -312,58 +317,61 @@ function ScenariosPageContent() {
 
             {scenarios.length === 0 ? (
               <div className="text-center py-12">
-                <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-stone-100 text-stone-400 dark:bg-stone-800 dark:text-stone-600 mb-4">
+                <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground mb-4">
                   <Save size={32} />
                 </div>
-                <h3 className="text-lg font-medium text-stone-900 dark:text-stone-100">
+                <h3 className="text-lg font-medium text-foreground">
                   No scenarios found
                 </h3>
-                <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Generate a scenario first to save it here
                 </p>
-                <Button className="mt-6" onClick={handleNewScenario}>
-                  <Save size={16} className="mr-2" />
+                <Button className="mt-6 gap-2" onClick={handleNewScenario}>
+                  <Save size={16} />
                   Generate New Scenario
                 </Button>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-stone-200/60 bg-white/70 shadow-sm dark:border-stone-800/50 dark:bg-stone-900/50">
+              <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                    <TableRow className="hover:bg-transparent border-b border-border">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80">
                         Name
                       </TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80">
                         ID
                       </TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 text-center">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80 text-center">
                         <span className="inline-flex items-center gap-1">
                           <MessageSquare
                             size={12}
-                            className="text-orange-500"
+                            className="text-primary"
                           />{" "}
                           Msgs
                         </span>
                       </TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 text-center">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80 text-center">
                         <span className="inline-flex items-center gap-1">
                           <MessageCircle
                             size={12}
-                            className="text-purple-500"
+                            className="text-primary"
                           />{" "}
                           Supplier
                         </span>
                       </TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 text-center">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80 text-center">
                         <span className="inline-flex items-center gap-1">
-                          <Database size={12} className="text-blue-500" /> SR
+                          <Database size={12} className="text-primary" /> SR
                         </span>
                       </TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80">
                         Created
                       </TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-stone-500 dark:text-stone-400 text-right">
+                      <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80 text-center">
+                        Results
+                      </TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80 text-right">
                         Actions
                       </TableHead>
                     </TableRow>
@@ -372,38 +380,52 @@ function ScenariosPageContent() {
                     {scenarios.map((scenario) => (
                       <TableRow
                         key={scenario.id}
-                        className="cursor-pointer hover:bg-orange-50/30 dark:hover:bg-orange-900/10 transition-colors"
+                        className="cursor-pointer hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
                         onClick={() => handleRowClick(scenario)}
                       >
-                        <TableCell className="font-medium text-stone-900 dark:text-stone-100 max-w-[200px] truncate">
+                        <TableCell className="font-medium text-foreground max-w-[200px] truncate">
                           {scenario.name}
                         </TableCell>
                         <TableCell>
                           <Badge
                             variant="secondary"
-                            className="text-xs font-mono"
+                            className="text-[10px] font-mono font-medium"
                           >
                             {scenario.id.slice(0, 8)}...
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-center text-sm text-stone-600 dark:text-stone-400">
+                        <TableCell className="text-center text-sm text-foreground/70">
                           {scenario.messageCount || 0}
                         </TableCell>
-                        <TableCell className="text-center text-sm text-stone-600 dark:text-stone-400">
+                        <TableCell className="text-center text-sm text-foreground/70">
                           {scenario.supplierMessageCount || 0}
                         </TableCell>
-                        <TableCell className="text-center text-sm text-stone-600 dark:text-stone-400">
+                        <TableCell className="text-center text-sm text-foreground/70">
                           {scenario.srData.length}
                         </TableCell>
-                        <TableCell className="text-sm text-stone-500 dark:text-stone-400 whitespace-nowrap">
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                           {new Date(scenario.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedScenarioForResults(scenario);
+                              setResultsDialogOpen(true);
+                            }}
+                            className="text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary hover:bg-primary/10 h-8 px-3"
+                          >
+                            View Results
+                          </Button>
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={(e) => handleDelete(scenario.id, e)}
-                            className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 h-8 w-8 p-0"
+                            className="text-destructive/60 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
                           >
                             <Trash2 size={14} />
                           </Button>
@@ -415,8 +437,8 @@ function ScenariosPageContent() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between border-t border-stone-200/60 px-4 py-3 dark:border-stone-800">
-                    <p className="text-xs text-stone-500 dark:text-stone-400">
+                  <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                    <p className="text-xs text-muted-foreground">
                       Page {page} of {totalPages}
                     </p>
                     <div className="flex items-center gap-1">
@@ -425,7 +447,7 @@ function ScenariosPageContent() {
                         variant="outline"
                         onClick={() => setPage(Math.max(1, page - 1))}
                         disabled={page === 1 || loading}
-                        className="h-8 text-xs"
+                        className="h-8 text-xs px-2"
                       >
                         <ChevronLeft size={14} className="mr-1" />
                         Previous
@@ -445,7 +467,7 @@ function ScenariosPageContent() {
                             className={cn(
                               "h-8 w-8 p-0 text-xs",
                               pageNum === page &&
-                                "bg-orange-600 hover:bg-orange-700",
+                                "bg-primary text-primary-foreground hover:bg-primary/90",
                             )}
                           >
                             {pageNum}
@@ -458,7 +480,7 @@ function ScenariosPageContent() {
                         variant="outline"
                         onClick={() => setPage(Math.min(totalPages, page + 1))}
                         disabled={page === totalPages || loading}
-                        className="h-8 text-xs"
+                        className="h-8 text-xs px-2"
                       >
                         Next
                         <ChevronRight size={14} className="ml-1" />
@@ -479,6 +501,13 @@ function ScenariosPageContent() {
         onUpdateOnly={handleUpdateOnly}
         onUpdateAndLoad={handleUpdateAndLoad}
         isUpdating={isUpdating}
+      />
+
+      <ScenarioResultsDialog
+        open={resultsDialogOpen}
+        onOpenChange={setResultsDialogOpen}
+        scenarioId={selectedScenarioForResults?.id || null}
+        scenarioName={selectedScenarioForResults?.name || null}
       />
     </>
   );
