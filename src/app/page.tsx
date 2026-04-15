@@ -194,7 +194,7 @@ export default function Home() {
 
   // Supervisor agent state - use useChat for streaming
   const MASTRA_SERVER_URL =
-    process.env.MASTRA_SERVER_URL || "http://localhost:4111";
+    process.env.NEXT_PUBLIC_MASTRA_SERVER_URL || "http://localhost:4111";
 
   const transport = useMemo(
     () =>
