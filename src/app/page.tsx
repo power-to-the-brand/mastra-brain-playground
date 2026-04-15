@@ -31,7 +31,6 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { randomUUID } from "node:crypto";
 
 // Streaming state types
 interface StreamResult {
@@ -209,7 +208,7 @@ export default function Home() {
       console.log("Stream finished", message);
       if (message.role === "assistant") {
         // Use message.content if available, otherwise join text parts
-        let content = message.content || "";
+        let content = message?.content || "";
 
         if (!content && message.parts) {
           const textParts = message.parts.filter(
