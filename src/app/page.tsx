@@ -72,6 +72,7 @@ export default function Home() {
   const [pastSupplierConversation, setPastSupplierConversation] = useState("");
   const [scenarioId, setScenarioId] = useState<string | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState("supervisor-v3");
 
   // Helper to convert messages to line-by-line format
   const messagesToLineFormat = useCallback(
@@ -199,9 +200,9 @@ export default function Home() {
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api: `${MASTRA_SERVER_URL}/supervisor-v3`,
+        api: `${MASTRA_SERVER_URL}/${selectedAgent}`,
       }),
-    [],
+    [MASTRA_SERVER_URL, selectedAgent],
   );
 
   const onFinish = useCallback(
@@ -237,7 +238,7 @@ export default function Home() {
             body: JSON.stringify({
               scenarioId: scenarioId || undefined,
               finalOutput: content,
-              agentName: "supervisor-agent-v3",
+              agentName: selectedAgent,
             }),
           })
             .then((res) => {
@@ -253,7 +254,7 @@ export default function Home() {
         }
       }
     },
-    [scenarioId],
+    [scenarioId, selectedAgent],
   );
 
   const { messages, sendMessage, status } = useChat({
