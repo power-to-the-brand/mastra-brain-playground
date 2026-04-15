@@ -24,6 +24,10 @@ interface ToastItem {
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = React.useState<ToastItem[]>([]);
 
+  const removeToast = React.useCallback((id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
+
   const addToast = React.useCallback((message: string, variant: "default" | "success" | "error" = "default") => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, message, variant }]);
@@ -32,11 +36,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
     setTimeout(() => {
       removeToast(id);
     }, 5000);
-  }, []);
-
-  const removeToast = React.useCallback((id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  }, []);
+  }, [removeToast]);
 
   return (
     <ToastContext.Provider value={{ addToast, removeToast }}>

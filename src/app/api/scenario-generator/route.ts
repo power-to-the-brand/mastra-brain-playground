@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const MASTRA_SERVER_URL =
-  process.env.MASTRA_SERVER_URL ?? "http://localhost:4112";
+  process.env.MASTRA_SERVER_URL ?? "http://localhost:4111";
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,30 +64,47 @@ export async function POST(request: NextRequest) {
     const parsed = JSON.parse(rawText);
 
     // Validate the response structure
-    if (!parsed.conversationMessages || !Array.isArray(parsed.conversationMessages)) {
+    if (
+      !parsed.conversationMessages ||
+      !Array.isArray(parsed.conversationMessages)
+    ) {
       return NextResponse.json(
-        { error: "Unexpected response from Mastra server: missing conversationMessages array" },
+        {
+          error:
+            "Unexpected response from Mastra server: missing conversationMessages array",
+        },
         { status: 502 },
       );
     }
 
     if (!parsed.srData || !Array.isArray(parsed.srData)) {
       return NextResponse.json(
-        { error: "Unexpected response from Mastra server: missing srData array" },
+        {
+          error: "Unexpected response from Mastra server: missing srData array",
+        },
         { status: 502 },
       );
     }
 
-    if (!parsed.pastSupplierConversation || !Array.isArray(parsed.pastSupplierConversation)) {
+    if (
+      !parsed.pastSupplierConversation ||
+      !Array.isArray(parsed.pastSupplierConversation)
+    ) {
       return NextResponse.json(
-        { error: "Unexpected response from Mastra server: missing pastSupplierConversation array" },
+        {
+          error:
+            "Unexpected response from Mastra server: missing pastSupplierConversation array",
+        },
         { status: 502 },
       );
     }
 
     if (!parsed.name || typeof parsed.name !== "string") {
       return NextResponse.json(
-        { error: "Unexpected response from Mastra server: missing or invalid name field" },
+        {
+          error:
+            "Unexpected response from Mastra server: missing or invalid name field",
+        },
         { status: 502 },
       );
     }

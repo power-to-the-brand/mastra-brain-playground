@@ -32,7 +32,7 @@ function calculatePagination(
   total: number,
   page: number,
   perPage: number,
-): PaginatedResult<any>["meta"] {
+): PaginatedResult<unknown>["meta"] {
   const totalPages = Math.ceil(total / perPage);
 
   return {

@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 const MASTRA_SERVER_URL =
   process.env.MASTRA_SERVER_URL ?? "http://localhost:4111";
 
+// Allow streaming responses up to 60 seconds
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -27,14 +30,6 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-
-    // Build the prompt for supervisor-agent-v3
-    // The supervisor agent needs:
-    // 1. SR ID (extract from quotation data or use a placeholder)
-    // 2. Conversation summary (from conversationMessages)
-    // 3. Current ask
-    // 4. Past supplier conversation
-    // 5. Quotation data
 
     // Extract SR ID from quotation data if available
     const srId =
@@ -76,8 +71,7 @@ Follow the supervisor-agent-v3 workflow:
 Return your analysis and recommended actions in JSON format.
 `;
 
-    // Call the Mastra server's custom supervisor-v3 route with structured output
-    // Note: custom API routes don't get /api prefix in Mastra
+    // Call the Mastra server's streaming supervisor-v3 route
     const mastraUrl = `${MASTRA_SERVER_URL}/supervisor-v3`;
 
     const mastraResponse = await fetch(mastraUrl, {
@@ -107,11 +101,26 @@ Return your analysis and recommended actions in JSON format.
       );
     }
 
-    const mastraData = await mastraResponse.json();
+    // Stream the response directly to the client
+    // Extract the readable stream from the mastra response
+    const mastraStream = mastraResponse.body;
 
-    // The custom /api/supervisor-v3 route returns structured JSON via agent.generate with structuredOutput
-    // The response shape is { result: { tickets: [...], summary: ..., currentAsk: ... } }
-    return NextResponse.json(mastraData);
+    if (!mastraStream) {
+      return NextResponse.json(
+        { error: "No stream available from Mastra server" },
+        { status: 500 },
+      );
+    }
+
+    // Pipe the mastra stream directly to the response
+    // The Mastra server already sends SSE format, we just pass it through
+    return new Response(mastraStream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      },
+    });
   } catch (error) {
     if (error instanceof SyntaxError) {
       return NextResponse.json(

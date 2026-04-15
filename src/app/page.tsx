@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,36 +22,56 @@ import {
   ConversationPreviewSidebar,
   type ConversationMessage,
 } from "@/components/conversation-preview-sidebar";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, SRData } from "@/types/scenario";
-import { ChatPreview } from "@/components/chat-preview";
 import { ToastProvider } from "@/components/ui/toast-provider";
+import { AgentTrace } from "@/components/agent-trace";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type Message } from "ai";
 
-// Result from supervisor-agent-v3
-interface SupervisorAgentResult {
-  summary?: string;
-  currentAsk?: string;
-  tickets?: Array<{
-    assignee: string;
-    srId: string;
-    payload: {
-      action: string;
-      details: string;
-      context?: string;
-    };
-  }>;
-  [key: string]: any;
+// Streaming state types
+interface StreamResult {
+  result?: {
+    summary?: string;
+    currentAsk?: string;
+    tickets?: Array<{
+      assignee: string;
+      srId: string;
+      payload: {
+        action: string;
+        details: string;
+        context?: string;
+      };
+    }>;
+  };
+  error?: string;
 }
+
+// Helper to extract JSON from text that might contain markdown or other characters
+const extractJSON = (text: string) => {
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) return null;
+
+  const jsonStr = text.substring(start, end + 1);
+  try {
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    console.error("Failed to parse extracted JSON", e);
+    return null;
+  }
+};
 
 export default function Home() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [conversationMessages, setConversationMessages] = useState("");
   const [quotationData, setQuotationData] = useState("");
   const [pastSupplierConversation, setPastSupplierConversation] = useState("");
+  const [hasStarted, setHasStarted] = useState(false);
 
   // Helper to convert messages to line-by-line format
-  const messagesToLineFormat = (
+  const messagesToLineFormat = useCallback((
     messages: ChatMessage[],
     {
       userRolePrefix,
@@ -68,10 +88,10 @@ export default function Home() {
         return `[${roleLabel}]: ${msg.content}`;
       })
       .join("\n");
-  };
+  }, []);
 
   // Helper to parse line-by-line format back to messages
-  const lineFormatToMessages = (
+  const lineFormatToMessages = useCallback((
     text: string,
     rolePrefix?: string,
   ): ChatMessage[] => {
@@ -98,7 +118,7 @@ export default function Home() {
       }
     }
     return messages;
-  };
+  }, []);
 
   // Load from sessionStorage on mount (one-time load behavior)
   useEffect(() => {
@@ -111,7 +131,7 @@ export default function Home() {
         try {
           const messages: ChatMessage[] = JSON.parse(conversation);
           setConversationMessages(messagesToLineFormat(messages));
-        } catch (e) {
+        } catch {
           console.error(
             "Failed to parse scenario_conversation from sessionStorage",
           );
@@ -122,7 +142,7 @@ export default function Home() {
         try {
           const data: SRData[] = JSON.parse(srData);
           setQuotationData(JSON.stringify(data, null, 2));
-        } catch (e) {
+        } catch {
           console.error("Failed to parse scenario_sr_data from sessionStorage");
         }
       }
@@ -136,7 +156,7 @@ export default function Home() {
               botRolePrefix: "Supplier",
             }),
           );
-        } catch (e) {
+        } catch {
           console.error(
             "Failed to parse scenario_supplier_chat from sessionStorage",
           );
@@ -150,7 +170,7 @@ export default function Home() {
     };
 
     loadFromSessionStorage();
-  }, []);
+  }, [messagesToLineFormat]);
 
   // Conversation transformer state
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -160,12 +180,133 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingError, setProcessingError] = useState<string | null>(null);
 
-  // Supervisor agent state
-  const [agentResult, setAgentResult] = useState<SupervisorAgentResult | null>(
+  // Supervisor agent state - use useChat for streaming
+  const MASTRA_SERVER_URL = "http://localhost:4111";
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: `${MASTRA_SERVER_URL}/supervisor-v3`,
+      }),
+    [],
+  );
+
+  const onFinish = useCallback((message: Message) => {
+    console.log("Stream finished", message);
+    if (message.role === "assistant") {
+      const textParts = message.parts?.filter(
+        (part) => part.type === "text",
+      ) as Array<{ type: "text"; text: string }>;
+      const content = textParts?.map((p) => p.text).join("") || "";
+
+      console.log("Parsing content:", content.substring(0, 100) + "...");
+      const result = extractJSON(content);
+      console.log("Parse result:", result);
+
+      if (result && (result.summary || result.tickets)) {
+        setAgentResult(result);
+      }
+    }
+  }, []);
+
+  const { messages, sendMessage, status } = useChat({
+    id: "supervisor-v3-chat",
+    transport,
+    onFinish,
+  });
+
+  // Derived state from useChat
+  const isRunningAgent = status === "streaming" || status === "submitted";
+
+  // Get the latest assistant message content (streaming text)
+  const streamingText = (() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === "assistant") {
+      // Extract text from parts array - find text parts and join them
+      const textParts = lastMessage.parts?.filter(
+        (part) => part.type === "text",
+      ) as Array<{ type: "text"; text: string }>;
+      return textParts?.map((p) => p.text).join("") || "";
+    }
+    return "";
+  })();
+
+  // Parse the final result when streaming completes
+  const [agentResult, setAgentResult] = useState<StreamResult["result"] | null>(
     null,
   );
-  const [isRunningAgent, setIsRunningAgent] = useState(false);
   const [agentError, setAgentError] = useState<string | null>(null);
+
+  // Handler to run the supervisor agent with streaming
+  const handleRunAgent = useCallback(() => {
+    const conversationData = lineFormatToMessages(conversationMessages);
+    const supplierData = lineFormatToMessages(
+      pastSupplierConversation,
+      "Supplier",
+    );
+
+    let quotationParsed: unknown;
+    try {
+      quotationParsed = quotationData ? JSON.parse(quotationData) : null;
+    } catch {
+      quotationParsed = null;
+    }
+
+    // Reset state
+    setHasStarted(true);
+    setAgentResult(null);
+    setAgentError(null);
+
+    // Format conversation messages as line-by-line for the agent
+    const formatConversation = (msgs: ChatMessage[]) => {
+      return msgs
+        .map(
+          (msg) =>
+            `[${msg.role === "user" ? "Customer" : "Bot"}]: ${msg.content}`,
+        )
+        .join("\n");
+    };
+
+    const customerConversationText = formatConversation(conversationData);
+    const supplierConversationText =
+      supplierData.length > 0
+        ? formatConversation(supplierData)
+        : "No past supplier conversation available.";
+
+    // Extract SR ID from quotation data if available
+    const q = quotationParsed as { runId?: string; srId?: string } | null;
+    const srId =
+      q?.runId || q?.srId || "SR-PLAYGROUND-001";
+
+    // Build the prompt with all required context
+    const prompt = `SR ID: ${srId}
+
+== PAST SUPPLIER CONVERSATION ==
+${supplierConversationText}
+
+== CUSTOMER CONVERSATION ==
+${customerConversationText}
+
+== QUOTATION DATA ==
+${JSON.stringify(quotationParsed, null, 2)}
+
+Please analyze this context and determine the appropriate actions to take.
+Follow the supervisor-agent-v3 workflow:
+1. Summarize the conversation to understand what has happened and the current ask
+2. Determine the right actions based on the customer's current request
+3. Create tickets for each action with appropriate assignees
+
+Return your analysis and recommended actions in JSON format.`;
+
+    // Send the message to trigger streaming
+    sendMessage({ text: prompt });
+  }, [
+    conversationMessages,
+    quotationData,
+    pastSupplierConversation,
+    lineFormatToMessages,
+    sendMessage,
+  ]);
 
   const handleProcessConversation = useCallback(async () => {
     if (!conversationMessages.trim()) return;
@@ -203,7 +344,7 @@ export default function Home() {
     } finally {
       setIsProcessing(false);
     }
-  }, [conversationMessages]);
+  }, [conversationMessages, lineFormatToMessages]);
 
   return (
     <ToastProvider>
@@ -428,22 +569,12 @@ export default function Home() {
                       size="lg"
                       className="w-full sm:w-auto bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white shadow-md shadow-orange-600/20 transition-all duration-300 hover:shadow-lg hover:shadow-orange-600/30 focus:ring-orange-500/50"
                       disabled={isRunningAgent}
-                      onClick={() =>
-                        handleRunSupervisorAgent(
-                          conversationMessages,
-                          quotationData,
-                          pastSupplierConversation,
-                          lineFormatToMessages,
-                          setAgentResult,
-                          setIsRunningAgent,
-                          setAgentError,
-                        )
-                      }
+                      onClick={handleRunAgent}
                     >
                       {isRunningAgent ? (
                         <>
                           <Loader2 size={18} className="mr-2 animate-spin" />
-                          Running Supervisor Agent...
+                          Running Brain...
                         </>
                       ) : (
                         <>
@@ -460,6 +591,46 @@ export default function Home() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Streaming Progress with Agent Trace - show when running OR when complete with results */}
+              {hasStarted && (
+                <div className="mt-6 animate-fade-in-up space-y-4">
+                  {/* Agent Trace - shows what agents/skills are being called */}
+                  <AgentTrace messages={messages} isStreaming={isRunningAgent} />
+
+                  {/* Live text output */}
+                  <Card className="border-orange-200 bg-gradient-to-br from-orange-50/80 to-amber-50/80 dark:border-orange-800 dark:from-orange-950/40 dark:to-amber-950/40">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
+                          <Brain className={cn("h-5 w-5 text-orange-600 dark:text-orange-400", isRunningAgent && "animate-pulse")} />
+                        </div>
+                        <div>
+                          <CardTitle className="text-base font-medium text-orange-900 dark:text-orange-100">
+                            {isRunningAgent ? "Brain Processing" : "Brain Output"}
+                          </CardTitle>
+                          <p className="text-xs text-orange-600/70 dark:text-orange-400/70">
+                            {isRunningAgent ? "Analyzing conversation and creating tickets..." : "Processing complete"}
+                          </p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="rounded-lg bg-white/60 dark:bg-stone-900/60 p-4 font-mono text-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={cn("h-2 w-2 rounded-full", isRunningAgent ? "animate-pulse bg-green-500" : "bg-green-500")} />
+                          <span className="text-xs text-stone-500 dark:text-stone-400">
+                            {isRunningAgent ? "Live output" : "Final output"}
+                          </span>
+                        </div>
+                        <pre className="whitespace-pre-wrap text-stone-700 dark:text-stone-300 max-h-48 overflow-y-auto">
+                          {streamingText || (isRunningAgent ? "Connecting to brain..." : "Final result received")}
+                        </pre>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
               {/* Supervisor Agent Result */}
               {agentResult && !isRunningAgent && (
@@ -501,44 +672,50 @@ export default function Home() {
                         )}
 
                         {/* Tickets */}
-                        {agentResult.tickets && agentResult.tickets.length > 0 && (
-                          <div className="space-y-3">
-                            <Label className="text-sm font-medium text-stone-700 dark:text-stone-300">
-                              Created Tickets ({agentResult.tickets.length})
-                            </Label>
-                            {agentResult.tickets.map((ticket, idx) => (
-                              <div
-                                key={idx}
-                                className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm dark:border-stone-700 dark:bg-stone-900/50"
-                              >
-                                <div className="flex items-center justify-between mb-3">
-                                  <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                                    {ticket.assignee}
-                                  </span>
-                                  <span className="text-xs text-stone-500 dark:text-stone-400">
-                                    {ticket.srId}
-                                  </span>
-                                </div>
-                                <div className="space-y-2">
-                                  <div>
-                                    <span className="inline-flex items-center rounded bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                                      {ticket.payload.action.replace(/_/g, " ")}
+                        {agentResult.tickets &&
+                          agentResult.tickets.length > 0 && (
+                            <div className="space-y-3">
+                              <Label className="text-sm font-medium text-stone-700 dark:text-stone-300">
+                                Created Tickets ({agentResult.tickets.length})
+                              </Label>
+                              {agentResult.tickets.map((ticket, idx) => (
+                                <div
+                                  key={idx}
+                                  className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm dark:border-stone-700 dark:bg-stone-900/50"
+                                >
+                                  <div className="flex items-center justify-between mb-3">
+                                    <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                                      {ticket.assignee}
+                                    </span>
+                                    <span className="text-xs text-stone-500 dark:text-stone-400">
+                                      {ticket.srId}
                                     </span>
                                   </div>
-                                  <p className="text-sm text-stone-700 dark:text-stone-300">
-                                    {ticket.payload.details}
-                                  </p>
-                                  {ticket.payload.context && (
-                                    <p className="text-xs text-stone-500 dark:text-stone-500">
-                                      <span className="font-medium">Context:</span>{" "}
-                                      {ticket.payload.context}
+                                  <div className="space-y-2">
+                                    <div>
+                                      <span className="inline-flex items-center rounded bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                        {ticket.payload.action.replace(
+                                          /_/g,
+                                          " ",
+                                        )}
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-stone-700 dark:text-stone-300">
+                                      {ticket.payload.details}
                                     </p>
-                                  )}
+                                    {ticket.payload.context && (
+                                      <p className="text-xs text-stone-500 dark:text-stone-500">
+                                        <span className="font-medium">
+                                          Context:
+                                        </span>{" "}
+                                        {ticket.payload.context}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                              ))}
+                            </div>
+                          )}
                       </div>
                     </CardContent>
                   </Card>
@@ -580,61 +757,3 @@ export default function Home() {
   );
 }
 
-// Run supervisor agent handler - must be inside the component to access state
-function handleRunSupervisorAgent(
-  conversationMessages: string,
-  quotationData: string,
-  pastSupplierConversation: string,
-  lineFormatToMessages: (text: string, rolePrefix?: string) => ChatMessage[],
-  setAgentResult: (result: SupervisorAgentResult | null) => void,
-  setIsRunningAgent: (running: boolean) => void,
-  setAgentError: (error: string | null) => void,
-) {
-  const conversationData = lineFormatToMessages(conversationMessages);
-  // For supplier conversation: Sourcy is user, supplier is assistant
-  const supplierData = lineFormatToMessages(
-    pastSupplierConversation,
-    "Supplier",
-  );
-
-  let quotationParsed: any;
-  try {
-    quotationParsed = quotationData ? JSON.parse(quotationData) : null;
-  } catch {
-    quotationParsed = null;
-  }
-
-  setIsRunningAgent(true);
-  setAgentError(null);
-  setAgentResult(null);
-
-  fetch("/api/supervisor-agent-v3", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      conversationMessages: conversationData,
-      quotationData: quotationParsed,
-      pastSupplierConversation: supplierData,
-    }),
-  })
-    .then(async (response) => {
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || `Request failed with status ${response.status}`,
-        );
-      }
-      return response.json();
-    })
-    .then((data) => {
-      setAgentResult(data.result);
-    })
-    .catch((err) => {
-      const message =
-        err instanceof Error ? err.message : "Failed to run supervisor agent";
-      setAgentError(message);
-    })
-    .finally(() => {
-      setIsRunningAgent(false);
-    });
-}
