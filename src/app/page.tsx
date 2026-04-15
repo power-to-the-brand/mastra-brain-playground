@@ -65,6 +65,9 @@ const extractJSON = (text: string) => {
   }
 };
 
+const MASTRA_SERVER_URL =
+  process.env.NEXT_PUBLIC_MASTRA_SERVER_URL || "http://localhost:4111";
+
 export default function Home() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [conversationMessages, setConversationMessages] = useState("");
@@ -194,15 +197,12 @@ export default function Home() {
   const [processingError, setProcessingError] = useState<string | null>(null);
 
   // Supervisor agent state - use useChat for streaming
-  const MASTRA_SERVER_URL =
-    process.env.NEXT_PUBLIC_MASTRA_SERVER_URL || "http://localhost:4111";
-
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: `${MASTRA_SERVER_URL}/${selectedAgent}`,
       }),
-    [MASTRA_SERVER_URL, selectedAgent],
+    [selectedAgent],
   );
 
   const onFinish = useCallback(
@@ -210,14 +210,14 @@ export default function Home() {
       console.log("Stream finished", message);
       if (message.role === "assistant") {
         // Use message.content if available, otherwise join text parts
-        let content = "";
+        let content = message.content || "";
 
         if (!content && message.parts) {
           const textParts = message.parts.filter(
             (part) => part.type === "text",
           ) as Array<{ type: "text"; text: string }>;
-          // Take only the last part as it contains the final structured outcome
-          content = textParts[textParts.length - 1]?.text || "";
+          // Join all text parts to ensure we have the full content
+          content = textParts.map((p) => p.text).join("");
         }
 
         console.log(
@@ -254,7 +254,7 @@ export default function Home() {
         }
       }
     },
-    [scenarioId, selectedAgent],
+    [scenarioId, selectedAgent, setAgentResult],
   );
 
   const { messages, sendMessage, status } = useChat({
@@ -270,7 +270,9 @@ export default function Home() {
   const streamingText = (() => {
     const lastMessage = messages[messages.length - 1];
     if (lastMessage?.role === "assistant") {
-      // Extract text from parts array - find text parts and join them
+      // Use content if available, otherwise join text parts
+      if (lastMessage.content) return lastMessage.content;
+
       const textParts = lastMessage.parts?.filter(
         (part) => part.type === "text",
       ) as Array<{ type: "text"; text: string }>;
@@ -620,7 +622,30 @@ Return your analysis and recommended actions in JSON format.`;
                     </AccordionItem>
                   </Accordion>
 
-                  <div className="mt-6 pt-4 border-t border-border">
+                  <div className="mt-6 pt-4 border-t border-border flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-3">
+                      <Label
+                        htmlFor="agent-selector"
+                        className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground whitespace-nowrap"
+                      >
+                        Target Brain:
+                      </Label>
+                      <select
+                        id="agent-selector"
+                        value={selectedAgent}
+                        onChange={(e) => setSelectedAgent(e.target.value)}
+                        className="h-10 rounded-lg border border-border bg-background/50 px-3 py-2 text-sm font-medium shadow-sm transition-all focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
+                      >
+                        <option value="supervisor-v3">Supervisor v3</option>
+                        <option value="piyush-supervisor">
+                          Piyush Supervisor
+                        </option>
+                        <option value="goal-action-agent">
+                          Goal Action Agent
+                        </option>
+                      </select>
+                    </div>
+
                     <Button
                       size="lg"
                       className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all duration-300 hover:shadow-lg focus:ring-primary/50"
