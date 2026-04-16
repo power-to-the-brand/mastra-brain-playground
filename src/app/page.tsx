@@ -740,88 +740,25 @@ Return your analysis and recommended actions in JSON format.`;
                 <div className="mt-8 animate-fade-in-up">
                   <Card className="border-border bg-card shadow-md ring-1 ring-border/5">
                     <CardHeader className="border-b border-border/50 pb-6">
-                      <CardTitle className="font-serif text-xl font-bold">
-                        Supervisor Analysis
-                      </CardTitle>
-                      <CardDescription className="text-sm">
-                        Executive summary and structured actionable tickets
-                      </CardDescription>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="font-serif text-xl font-bold">
+                            Brain Analysis
+                          </CardTitle>
+                          <CardDescription className="text-sm">
+                            The final response from {selectedAgent}
+                          </CardDescription>
+                        </div>
+                        <span className="inline-flex items-center rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-primary border border-primary/20">
+                          Final Result
+                        </span>
+                      </div>
                     </CardHeader>
                     <CardContent className="pt-6">
-                      <div className="space-y-8">
-                        {/* Summary */}
-                        {agentResult.summary && (
-                          <div className="space-y-3">
-                            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                              Conversation Summary
-                            </Label>
-                            <div className="rounded-xl border border-border/60 bg-muted/20 p-5 text-[15px] leading-relaxed text-foreground/90 font-serif italic">
-                              &ldquo;{agentResult.summary}&rdquo;
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Current Ask */}
-                        {agentResult.currentAsk && (
-                          <div className="space-y-3">
-                            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                              Primary Request
-                            </Label>
-                            <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 shadow-sm ring-1 ring-primary/10">
-                              <p className="text-base font-serif font-bold text-foreground leading-relaxed">
-                                {agentResult.currentAsk}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Tickets */}
-                        {agentResult.tickets &&
-                          agentResult.tickets.length > 0 && (
-                            <div className="space-y-4">
-                              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                Actionable Tickets ({agentResult.tickets.length}
-                                )
-                              </Label>
-                              <div className="grid gap-4 sm:grid-cols-2">
-                                {agentResult.tickets.map((ticket, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="group rounded-xl border border-border bg-background/50 p-5 shadow-sm hover:border-primary/40 hover:shadow-md transition-all duration-300"
-                                  >
-                                    <div className="flex items-center justify-between mb-4">
-                                      <span className="inline-flex items-center rounded-lg bg-secondary/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-secondary-foreground border border-border/50">
-                                        {ticket.assignee}
-                                      </span>
-                                      <span className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-tighter">
-                                        {ticket.srId}
-                                      </span>
-                                    </div>
-                                    <div className="space-y-3">
-                                      <div>
-                                        <span className="inline-flex items-center rounded bg-primary/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-primary border border-primary/10">
-                                          {ticket.payload.action.replace(
-                                            /_/g,
-                                            " ",
-                                          )}
-                                        </span>
-                                      </div>
-                                      <p className="text-[14px] text-foreground/90 leading-snug font-medium">
-                                        {ticket.payload.details}
-                                      </p>
-                                      {ticket.payload.context && (
-                                        <div className="border-t border-border/40 mt-3 pt-3">
-                                          <p className="text-[12px] text-muted-foreground leading-relaxed italic line-clamp-2 group-hover:line-clamp-none transition-all">
-                                            {ticket.payload.context}
-                                          </p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                      <div className="prose prose-stone dark:prose-invert max-w-none">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {streamingText || "No response received"}
+                        </ReactMarkdown>
                       </div>
                     </CardContent>
                   </Card>
