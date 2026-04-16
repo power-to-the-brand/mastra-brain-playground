@@ -44,12 +44,12 @@ export function ScenarioInput({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         className={cn(
-          "min-h-[200px] border-border bg-muted/20 text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 focus:ring-primary/10 transition-all duration-300 rounded-xl",
+          "min-h-[200px] border-border bg-muted/20 text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 focus:ring-primary/10 transition-all duration-300 rounded-2xl",
           disabled && "opacity-60",
         )}
         disabled={disabled}
       />
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex items-center justify-between pt-4">
         <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
           Press <kbd className="rounded-md bg-muted px-1.5 py-0.5 text-foreground ring-1 ring-border">Enter</kbd> to generate
         </p>

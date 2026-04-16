@@ -162,7 +162,7 @@ export default function ScenarioBuilderPage() {
               </Card>
             ) : (
               <Card className="border-none bg-transparent shadow-none">
-                <CardHeader className="px-0">
+                <CardHeader>
                   <CardTitle className="text-lg font-serif font-semibold text-foreground">
                     Input Scenario
                   </CardTitle>
@@ -170,7 +170,7 @@ export default function ScenarioBuilderPage() {
                     Describe your scenario to generate a complete conversation, SR data, and supplier chat history
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="px-0">
+                <CardContent>
                   <div className="space-y-6">
                     <div className="space-y-3">
                       <ScenarioInput
