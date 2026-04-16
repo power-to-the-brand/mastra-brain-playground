@@ -38,6 +38,7 @@ export function ScenarioResultsDialog({
   scenarioId,
   scenarioName,
 }: ScenarioResultsDialogProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pastResults, setPastResults] = React.useState<any[]>([]);
   const [loadingResults, setLoadingResults] = React.useState(false);
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
@@ -55,7 +56,9 @@ export function ScenarioResultsDialog({
   const toggleSelection = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id].slice(-2),
+      prev.includes(id)
+        ? prev.filter((i) => i !== id)
+        : [...prev, id].slice(-2),
     );
   };
 
@@ -100,10 +103,12 @@ export function ScenarioResultsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn(
-        "max-h-[85vh] flex flex-col p-0 overflow-hidden border-border bg-card transition-all duration-500",
-        compareMode ? "sm:max-w-6xl" : "sm:max-w-2xl"
-      )}>
+      <DialogContent
+        className={cn(
+          "max-h-[85vh] flex flex-col p-0 overflow-hidden border-border bg-card transition-all duration-500",
+          compareMode ? "sm:max-w-6xl" : "sm:max-w-2xl",
+        )}
+      >
         <div className="px-6 pt-6 pb-2">
           <DialogHeader className="flex flex-row items-center justify-between">
             <div className="space-y-1">
@@ -120,10 +125,16 @@ export function ScenarioResultsDialog({
                 ) : (
                   <History size={20} className="text-primary" />
                 )}
-                <span>{compareMode ? "Compare Agent Outputs" : `Results for ${scenarioName}`}</span>
+                <span>
+                  {compareMode
+                    ? "Compare Agent Outputs"
+                    : `Results for ${scenarioName}`}
+                </span>
               </DialogTitle>
               <DialogDescription className="text-xs font-bold uppercase tracking-widest text-muted-foreground/50">
-                {compareMode ? "Analyzing variance between generations" : "Review past executions and compare outputs"}
+                {compareMode
+                  ? "Analyzing variance between generations"
+                  : "Review past executions and compare outputs"}
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -156,9 +167,14 @@ export function ScenarioResultsDialog({
             <div className="flex flex-col items-center justify-center py-20">
               <div className="relative">
                 <Sparkles className="animate-spin text-primary/40" size={32} />
-                <Sparkles className="absolute inset-0 animate-pulse text-primary/20 scale-150" size={32} />
+                <Sparkles
+                  className="absolute inset-0 animate-pulse text-primary/20 scale-150"
+                  size={32}
+                />
               </div>
-              <span className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/40">Consulting Archives...</span>
+              <span className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/40">
+                Consulting Archives...
+              </span>
             </div>
           ) : compareMode ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 h-full min-h-[500px] mt-4">
@@ -172,7 +188,9 @@ export function ScenarioResultsDialog({
                     key={`compare-${index}`}
                     className={cn(
                       "flex flex-col gap-4 animate-in duration-700 fill-mode-both",
-                      index === 0 ? "slide-in-from-left-8" : "slide-in-from-right-8"
+                      index === 0
+                        ? "slide-in-from-left-8"
+                        : "slide-in-from-right-8",
                     )}
                   >
                     <div className="flex items-center justify-between sticky top-0 bg-card/95 backdrop-blur-md py-3 z-10 border-b border-border/50">
@@ -183,26 +201,42 @@ export function ScenarioResultsDialog({
                         <div className="relative group/select">
                           <select
                             value={result.id}
-                            onChange={(e) => switchResult(index, e.target.value)}
+                            onChange={(e) =>
+                              switchResult(index, e.target.value)
+                            }
                             className="appearance-none bg-transparent border-none p-0 pr-6 font-serif font-bold text-base text-foreground focus:ring-0 cursor-pointer w-full truncate"
                           >
                             {pastResults.map((r) => (
-                              <option key={r.id} value={r.id} className="bg-card text-foreground py-2">
-                                {r.agentName} ({new Date(r.createdAt).toLocaleTimeString()})
+                              <option
+                                key={r.id}
+                                value={r.id}
+                                className="bg-card text-foreground py-2"
+                              >
+                                {r.agentName} (
+                                {new Date(r.createdAt).toLocaleTimeString()})
                               </option>
                             ))}
                           </select>
-                          <ChevronDown size={14} className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none group-hover/select:text-primary transition-colors" />
+                          <ChevronDown
+                            size={14}
+                            className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none group-hover/select:text-primary transition-colors"
+                          />
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => copyToClipboard(result.finalOutput, result.id)}
+                          onClick={() =>
+                            copyToClipboard(result.finalOutput, result.id)
+                          }
                           className="h-7 w-7 p-0 rounded-full border-border/50 hover:border-primary/50 hover:text-primary transition-all"
                         >
-                          {copiedId === result.id ? <Check size={12} /> : <Copy size={12} />}
+                          {copiedId === result.id ? (
+                            <Check size={12} />
+                          ) : (
+                            <Copy size={12} />
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -226,31 +260,42 @@ export function ScenarioResultsDialog({
                     "group relative flex flex-col gap-3 rounded-2xl border p-5 transition-all cursor-pointer overflow-hidden",
                     selectedIds.includes(result.id)
                       ? "border-primary bg-primary/[0.02] shadow-md ring-1 ring-primary/20"
-                      : "border-border/60 bg-muted/[0.03] hover:border-primary/30 hover:bg-muted/[0.05] shadow-sm"
+                      : "border-border/60 bg-muted/[0.03] hover:border-primary/30 hover:bg-muted/[0.05] shadow-sm",
                   )}
                   onClick={(e) => toggleSelection(result.id, e)}
                 >
                   {/* Selection Indicator */}
-                  <div className={cn(
-                    "absolute top-0 left-0 w-1 h-full transition-all duration-300",
-                    selectedIds.includes(result.id) ? "bg-primary scale-y-100" : "bg-primary/0 scale-y-0"
-                  )} />
+                  <div
+                    className={cn(
+                      "absolute top-0 left-0 w-1 h-full transition-all duration-300",
+                      selectedIds.includes(result.id)
+                        ? "bg-primary scale-y-100"
+                        : "bg-primary/0 scale-y-0",
+                    )}
+                  />
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-6 h-6 rounded-full border flex items-center justify-center transition-all duration-300",
-                        selectedIds.includes(result.id)
-                          ? "bg-primary border-primary text-primary-foreground scale-110 shadow-lg shadow-primary/30"
-                          : "border-muted-foreground/20 bg-background group-hover:border-primary/40"
-                      )}>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full border flex items-center justify-center transition-all duration-300",
+                          selectedIds.includes(result.id)
+                            ? "bg-primary border-primary text-primary-foreground scale-110 shadow-lg shadow-primary/30"
+                            : "border-muted-foreground/20 bg-background group-hover:border-primary/40",
+                        )}
+                      >
                         {selectedIds.includes(result.id) ? (
-                          <span className="text-[10px] font-bold">{selectedIds.indexOf(result.id) + 1}</span>
+                          <span className="text-[10px] font-bold">
+                            {selectedIds.indexOf(result.id) + 1}
+                          </span>
                         ) : (
                           <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/20 group-hover:bg-primary/20 transition-colors" />
                         )}
                       </div>
-                      <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-muted/10 border-border/50">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-muted/10 border-border/50"
+                      >
                         {result.agentName}
                       </Badge>
                       <span className="text-[10px] text-muted-foreground/40 font-mono tracking-tight">
@@ -267,9 +312,15 @@ export function ScenarioResultsDialog({
                       className="h-8 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-primary transition-all opacity-0 group-hover:opacity-100"
                     >
                       {copiedId === result.id ? (
-                        <><Check size={12} className="mr-1.5 text-success" />Copied</>
+                        <>
+                          <Check size={12} className="mr-1.5 text-success" />
+                          Copied
+                        </>
                       ) : (
-                        <><Copy size={12} className="mr-1.5" />Copy Output</>
+                        <>
+                          <Copy size={12} className="mr-1.5" />
+                          Copy Output
+                        </>
                       )}
                     </Button>
                   </div>
@@ -283,7 +334,10 @@ export function ScenarioResultsDialog({
             </div>
           ) : (
             <div className="text-center py-12 border-2 border-dashed border-border rounded-2xl">
-              <History className="mx-auto text-muted-foreground/20 mb-3" size={32} />
+              <History
+                className="mx-auto text-muted-foreground/20 mb-3"
+                size={32}
+              />
               <p className="text-sm text-muted-foreground">
                 No past results found for this scenario.
               </p>
