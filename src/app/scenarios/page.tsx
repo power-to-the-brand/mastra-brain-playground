@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Database,
   MessageCircle,
+  Play,
 } from "lucide-react";
 import type { Scenario } from "@/db/schema";
 import { ToastProvider, useToast } from "@/components/ui/toast-provider";
@@ -206,6 +207,23 @@ function ScenariosPageContent() {
     }
   };
 
+  const handleLoadIntoPlayground = (scenario: ScenarioWithMeta) => {
+    sessionStorage.setItem(
+      "scenario_conversation",
+      JSON.stringify(scenario.conversationMessages),
+    );
+    sessionStorage.setItem("scenario_sr_data", JSON.stringify(scenario.srData));
+    sessionStorage.setItem(
+      "scenario_supplier_chat",
+      JSON.stringify(scenario.pastSupplierConversation),
+    );
+    sessionStorage.setItem("scenario_id", scenario.id);
+    sessionStorage.setItem("scenario_name", scenario.name);
+
+    addToast(`Loading "${scenario.name}" into playground...`, "success");
+    window.location.href = "/";
+  };
+
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm("Are you sure you want to delete this scenario?")) return;
@@ -369,6 +387,9 @@ function ScenariosPageContent() {
                         Created
                       </TableHead>
                       <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80 text-center">
+                        Playground
+                      </TableHead>
+                      <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80 text-center">
                         Results
                       </TableHead>
                       <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80 text-right">
@@ -405,6 +426,19 @@ function ScenariosPageContent() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                           {new Date(scenario.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLoadIntoPlayground(scenario);
+                            }}
+                            className="text-[10px] font-bold uppercase tracking-wider h-8 px-3 gap-2"
+                          >
+                            <Play size={12} fill="currentColor" />
+                            Load
+                          </Button>
                         </TableCell>
                         <TableCell className="text-center">
                           <Button
