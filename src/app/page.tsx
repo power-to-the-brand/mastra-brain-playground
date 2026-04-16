@@ -77,6 +77,12 @@ export default function Home() {
   const [hasStarted, setHasStarted] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState("supervisor-v3");
 
+  // Parse the final result when streaming completes
+  const [agentResult, setAgentResult] = useState<StreamResult["result"] | null>(
+    null,
+  );
+  const [agentError, setAgentError] = useState<string | null>(null);
+
   // Helper to convert messages to line-by-line format
   const messagesToLineFormat = useCallback(
     (
@@ -258,7 +264,7 @@ export default function Home() {
   );
 
   const { messages, sendMessage, status } = useChat({
-    id: "supervisor-v3-chat",
+    id: `chat-${selectedAgent}`,
     transport,
     onFinish,
   });
@@ -280,12 +286,6 @@ export default function Home() {
     }
     return "";
   })();
-
-  // Parse the final result when streaming completes
-  const [agentResult, setAgentResult] = useState<StreamResult["result"] | null>(
-    null,
-  );
-  const [agentError, setAgentError] = useState<string | null>(null);
 
   // Handler to run the supervisor agent with streaming
   const handleRunAgent = useCallback(() => {
@@ -634,14 +634,12 @@ Return your analysis and recommended actions in JSON format.`;
                         id="agent-selector"
                         value={selectedAgent}
                         onChange={(e) => setSelectedAgent(e.target.value)}
-                        className="h-10 rounded-lg border border-border bg-background/50 px-3 py-2 text-sm font-medium shadow-sm transition-all focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
+                        disabled={isRunningAgent}
+                        className="h-10 rounded-lg border border-border bg-background/50 px-3 py-2 text-sm font-medium shadow-sm transition-all focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <option value="supervisor-v3">Supervisor v3</option>
                         <option value="piyush-supervisor">
                           Piyush Supervisor
-                        </option>
-                        <option value="goal-action-agent">
-                          Goal Action Agent
                         </option>
                       </select>
                     </div>
