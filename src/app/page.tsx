@@ -276,9 +276,6 @@ export default function Home() {
   const streamingText = (() => {
     const lastMessage = messages[messages.length - 1];
     if (lastMessage?.role === "assistant") {
-      // Use content if available, otherwise join text parts
-      if (lastMessage.content) return lastMessage.content;
-
       const textParts = lastMessage.parts?.filter(
         (part) => part.type === "text",
       ) as Array<{ type: "text"; text: string }>;
