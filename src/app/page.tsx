@@ -216,7 +216,7 @@ export default function Home() {
       console.log("Stream finished", message);
       if (message.role === "assistant") {
         // Use message.content if available, otherwise join text parts
-        let content = message.content || "";
+        let content = "";
 
         if (!content && message.parts) {
           const textParts = message.parts.filter(
