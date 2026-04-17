@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Sidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import type { ChatMessage, SRData } from "@/types/scenario";
+import type { ChatMessage, QuotationData, SRData } from "@/types/scenario";
 import { ScenarioInput } from "@/components/scenario-input";
 import { GeneratedResults } from "@/components/generated-results";
 import { ToastProvider } from "@/components/ui/toast-provider";
@@ -23,6 +23,7 @@ export default function ScenarioBuilderPage() {
     name?: string;
     conversationMessages: ChatMessage[];
     srData: SRData[];
+    products: QuotationData[];
     pastSupplierConversation: ChatMessage[];
   } | null>(null);
   const [processingError, setProcessingError] = useState<string | null>(null);
@@ -33,18 +34,21 @@ export default function ScenarioBuilderPage() {
       const conversation = sessionStorage.getItem("scenario_conversation");
       const srData = sessionStorage.getItem("scenario_sr_data");
       const supplierChat = sessionStorage.getItem("scenario_supplier_chat");
+      const products = sessionStorage.getItem("scenario_products");
 
-      if (conversation || srData || supplierChat) {
+      if (conversation || srData || supplierChat || products) {
         // Data was loaded from sessionStorage - now clear it and load into playground
         // This is the "one-time load" behavior
         setScenarioResults({
           conversationMessages: conversation ? JSON.parse(conversation) : [],
           srData: srData ? JSON.parse(srData) : [],
+          products: products ? JSON.parse(products) : [],
           pastSupplierConversation: supplierChat ? JSON.parse(supplierChat) : [],
         });
         sessionStorage.removeItem("scenario_conversation");
         sessionStorage.removeItem("scenario_sr_data");
         sessionStorage.removeItem("scenario_supplier_chat");
+        sessionStorage.removeItem("scenario_products");
       }
     };
 
@@ -99,6 +103,10 @@ export default function ScenarioBuilderPage() {
       "scenario_supplier_chat",
       JSON.stringify(scenarioResults.pastSupplierConversation),
     );
+    sessionStorage.setItem(
+      "scenario_products",
+      JSON.stringify(scenarioResults.products),
+    );
 
     // Redirect to main page
     window.location.href = "/";
@@ -150,6 +158,7 @@ export default function ScenarioBuilderPage() {
                     name={scenarioResults?.name}
                     conversationMessages={scenarioResults.conversationMessages}
                     srData={scenarioResults.srData}
+                    products={scenarioResults.products}
                     pastSupplierConversation={scenarioResults.pastSupplierConversation}
                     onReset={() => {
                       setScenarioResults(null);

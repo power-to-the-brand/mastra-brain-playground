@@ -109,10 +109,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const products = Array.isArray(parsed.products) ? parsed.products : [];
+
     return NextResponse.json({
       name: parsed.name,
       conversationMessages: parsed.conversationMessages,
       srData: parsed.srData,
+      products,
       pastSupplierConversation: parsed.pastSupplierConversation,
     });
   } catch (error) {

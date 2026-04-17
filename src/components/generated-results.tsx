@@ -1,17 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, ChevronUp, Copy, Check, Play, MessageSquare, Database, MessageCircle, Save, User, Bot } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Check, Play, MessageSquare, Database, MessageCircle, Save, User, Bot, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { ChatMessage, SRData, SaveScenarioRequest, SaveScenarioResponse } from "@/types/scenario";
+import type { ChatMessage, QuotationData, SRData, SaveScenarioRequest, SaveScenarioResponse } from "@/types/scenario";
 import { useToast } from "@/components/ui/toast-provider";
 
 interface GeneratedResultsProps {
   name?: string;
   conversationMessages: ChatMessage[];
   srData: SRData[];
+  products?: QuotationData[];
   pastSupplierConversation: ChatMessage[];
   onReset: () => void;
   onLoadIntoPlayground?: () => void;
@@ -22,6 +23,7 @@ interface SaveScenarioButtonProps {
   name?: string;
   conversationMessages: ChatMessage[];
   srData: SRData[];
+  products?: QuotationData[];
   pastSupplierConversation: ChatMessage[];
   onSaveSuccess?: (scenario: SaveScenarioResponse["data"]) => void;
   isLoading?: boolean;
@@ -31,6 +33,7 @@ function SaveScenarioButton({
   name,
   conversationMessages,
   srData,
+  products,
   pastSupplierConversation,
   onSaveSuccess,
   isLoading,
@@ -56,6 +59,7 @@ function SaveScenarioButton({
           name: scenarioName,
           conversationMessages,
           srData,
+          ...(products && products.length > 0 ? { products } : {}),
           pastSupplierConversation,
         }),
       });
@@ -145,6 +149,7 @@ export function GeneratedResults({
   name,
   conversationMessages,
   srData,
+  products = [],
   pastSupplierConversation,
   onReset,
   onLoadIntoPlayground,
@@ -153,10 +158,12 @@ export function GeneratedResults({
   const [expandedSections, setExpandedSections] = React.useState<{
     conversation: boolean;
     srData: boolean;
+    products: boolean;
     supplierChat: boolean;
   }>({
     conversation: true,
     srData: true,
+    products: true,
     supplierChat: true,
   });
 
@@ -187,6 +194,7 @@ export function GeneratedResults({
             name={name}
             conversationMessages={conversationMessages}
             srData={srData}
+            products={products}
             pastSupplierConversation={pastSupplierConversation}
             isLoading={isLoading}
             onSaveSuccess={() => {
@@ -366,6 +374,220 @@ export function GeneratedResults({
           </div>
         )}
       </div>
+
+      {/* Products / Quotation Data Section */}
+      {products.length > 0 && (
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300">
+          <button
+            onClick={() => toggleSection("products")}
+            aria-expanded={expandedSections.products}
+            className="flex w-full items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Package size={18} />
+              </div>
+              <div className="text-left">
+                <span className="block font-serif font-bold text-foreground">
+                  Products / Quotation Data
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                  {products.length} product{products.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+            </div>
+            {expandedSections.products ? (
+              <ChevronUp size={18} className="text-muted-foreground/60" />
+            ) : (
+              <ChevronDown size={18} className="text-muted-foreground/60" />
+            )}
+          </button>
+
+          {expandedSections.products && (
+            <div className="border-t border-border p-6 bg-muted/5">
+              <div className="flex flex-col gap-6">
+                {products.map((product, idx) => {
+                  const verdict = product.spec_matching_data?.verdict;
+                  const verdictColor =
+                    verdict === "shortlisted"
+                      ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                      : verdict === "eliminated"
+                        ? "bg-red-100 text-red-800 border-red-200"
+                        : "bg-amber-100 text-amber-800 border-amber-200";
+
+                  return (
+                    <div
+                      key={product.product_id || idx}
+                      className="rounded-xl border border-border bg-background p-5 space-y-4"
+                    >
+                      {/* Header: Title + Verdict */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <h4 className="font-serif font-semibold text-foreground text-sm truncate">
+                            {product.cleanup_data?.product?.title_translated || product.cleanup_data?.product?.title || `Product ${idx + 1}`}
+                          </h4>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            {product.cleanup_data?.product?.supplier_name || "Unknown supplier"}
+                          </p>
+                        </div>
+                        {verdict && (
+                          <Badge className={cn("text-[10px] font-bold uppercase tracking-wider border shrink-0", verdictColor)}>
+                            {verdict}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Key Info Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        {/* Price */}
+                        <div className="space-y-0.5">
+                          <span className="text-muted-foreground">Price (CNY)</span>
+                          <p className="font-medium text-foreground">
+                            {product.cleanup_data?.product?.price
+                              ? `${product.cleanup_data.product.price.price_min} – ${product.cleanup_data.product.price.price_max}`
+                              : "—"}
+                          </p>
+                        </div>
+                        {/* Price USD */}
+                        <div className="space-y-0.5">
+                          <span className="text-muted-foreground">Price (USD)</span>
+                          <p className="font-medium text-foreground">
+                            {product.cleanup_data?.product?.price_usd
+                              ? `${product.cleanup_data.product.price_usd.price_min} – ${product.cleanup_data.product.price_usd.price_max}`
+                              : "—"}
+                          </p>
+                        </div>
+                        {/* MOQ */}
+                        <div className="space-y-0.5">
+                          <span className="text-muted-foreground">MOQ</span>
+                          <p className="font-medium text-foreground">
+                            {product.cleanup_data?.product?.moq != null
+                              ? `${product.cleanup_data.product.moq} ${product.cleanup_data.product.moq_unit_translated || "pcs"}`
+                              : "—"}
+                          </p>
+                        </div>
+                        {/* Supplier Score */}
+                        <div className="space-y-0.5">
+                          <span className="text-muted-foreground">Supplier Score</span>
+                          <p className="font-medium text-foreground">
+                            {product.spec_matching_data?.supplier_score?.final_score != null
+                              ? product.spec_matching_data.supplier_score.final_score.toFixed(2)
+                              : "—"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Supplier Details */}
+                      {product.cleanup_data?.supplier && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          <span>Location: {product.cleanup_data.supplier.location_translated || product.cleanup_data.supplier.location_str}</span>
+                          <span>Type: {product.cleanup_data.supplier.is_factory ? "Factory" : product.cleanup_data.supplier.is_trader ? "Trader" : "Unknown"}</span>
+                          <span>Years: {product.cleanup_data.supplier.years_in_business}</span>
+                          <span>Rating: {product.cleanup_data.supplier.shop_rating ?? "—"}</span>
+                        </div>
+                      )}
+
+                      {/* Spec Matching Scores */}
+                      {product.spec_matching_data && (
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 font-medium text-foreground">
+                            Veto: {product.spec_matching_data.veto_score?.toFixed(2) ?? "—"}
+                          </span>
+                          <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 font-medium text-foreground">
+                            Re-rank: {product.spec_matching_data.rerank_match_score?.toFixed(2) ?? "—"}
+                          </span>
+                          <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 font-medium text-foreground">
+                            Image: {product.spec_matching_data.image_rerank_score?.toFixed(2) ?? "—"}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Key Attributes */}
+                      {product.cleanup_data?.attributes && product.cleanup_data.attributes.length > 0 && (
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                            Attributes
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {product.cleanup_data.attributes.slice(0, 12).map((attr, attrIdx) => (
+                              <span
+                                key={attrIdx}
+                                className="inline-flex items-center rounded-md border border-border bg-background px-2 py-0.5 text-[11px] text-foreground"
+                              >
+                                <span className="font-medium">{attr.name_translated || attr.name}</span>
+                                <span className="text-muted-foreground mx-1">:</span>
+                                <span>{attr.value_translated || attr.value}</span>
+                              </span>
+                            ))}
+                            {product.cleanup_data.attributes.length > 12 && (
+                              <span className="inline-flex items-center text-[11px] text-muted-foreground">
+                                +{product.cleanup_data.attributes.length - 12} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Facet Tags */}
+                      {product.spec_matching_data?.facet_tags && Object.keys(product.spec_matching_data.facet_tags).length > 0 && (
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                            Facets
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {Object.entries(product.spec_matching_data.facet_tags).map(([key, value]) => (
+                              <span
+                                key={key}
+                                className="inline-flex items-center rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] text-foreground"
+                              >
+                                <span className="font-medium">{key}</span>
+                                <span className="text-muted-foreground mx-1">:</span>
+                                <span>{value}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Raw JSON Toggle */}
+                      <details className="group">
+                        <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors">
+                          Raw JSON
+                        </summary>
+                        <div className="mt-2 max-h-[300px] overflow-y-auto rounded-xl border border-border bg-background p-4 font-mono text-xs text-foreground/80 leading-relaxed scrollbar-thin scrollbar-thumb-border">
+                          <pre>{formatJson(product)}</pre>
+                        </div>
+                      </details>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    copyToClipboard(formatJson(products), "products")
+                  }
+                  className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                >
+                  {copiedSection === "products" ? (
+                    <>
+                      <Check size={14} className="mr-1.5 text-success" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} className="mr-1.5" />
+                      Copy All JSON
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Past Supplier Conversation Section */}
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300">
