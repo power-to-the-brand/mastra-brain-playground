@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
         conversationMessages: body.conversationMessages,
         srData: body.srData,
         pastSupplierConversation: body.pastSupplierConversation,
+        ...(body.products !== undefined ? { products: body.products } : {}),
       })
       .returning();
 
@@ -218,6 +219,7 @@ export async function PUT(request: NextRequest) {
         conversationMessages: body.conversationMessages,
         srData: body.srData,
         pastSupplierConversation: body.pastSupplierConversation,
+        ...(body.products !== undefined ? { products: body.products } : {}),
         updatedAt: new Date(),
       })
       .where(eq(scenarios.id, body.id))
