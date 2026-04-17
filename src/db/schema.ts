@@ -14,6 +14,7 @@ export const scenarios = pgTable("scenarios", {
   name: varchar("name", { length: 255 }).notNull(),
   conversationMessages: jsonb("conversation_messages").notNull(),
   srData: jsonb("sr_data").notNull(),
+  products: jsonb("products"),
   pastSupplierConversation: jsonb("past_supplier_conversation").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
