@@ -99,7 +99,7 @@ export function ChatView({ agentId, scenarioId, runId, initialMessages = [] }: C
     <AssistantRuntimeProvider runtime={runtime}>
       <MessageSaver runId={runId} runtime={runtime} />
       <div className="flex-1 flex flex-col h-full bg-stone-50 dark:bg-stone-950">
-        <Thread />
+        <Thread scenarioId={scenarioId} />
       </div>
     </AssistantRuntimeProvider>
   );

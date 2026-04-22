@@ -9,6 +9,7 @@ import { MarkdownText } from "@/components/assistant-ui/markdown-text";
 import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
   ActionBarMorePrimitive,
@@ -21,6 +22,7 @@ import {
   SuggestionPrimitive,
   ThreadPrimitive,
   useAuiState,
+  useAui,
 } from "@assistant-ui/react";
 import {
   ArrowDownIcon,
@@ -37,7 +39,11 @@ import {
 } from "lucide-react";
 import type { FC } from "react";
 
-export const Thread: FC = () => {
+interface ThreadProps {
+  scenarioId?: string;
+}
+
+export const Thread: FC<ThreadProps> = ({ scenarioId }) => {
   return (
     <ThreadPrimitive.Root
       className="aui-root aui-thread-root @container flex h-full flex-col bg-stone-50 dark:bg-stone-950"
@@ -54,7 +60,7 @@ export const Thread: FC = () => {
       >
         <div className="mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4">
           <AuiIf condition={(s) => s.thread.isEmpty}>
-            <ThreadWelcome />
+            <ThreadWelcome scenarioId={scenarioId} />
           </AuiIf>
 
           <div
@@ -91,7 +97,19 @@ const ThreadScrollToBottom: FC = () => {
   );
 };
 
-const ThreadWelcome: FC = () => {
+interface ThreadWelcomeProps {
+  scenarioId?: string;
+}
+
+const ThreadWelcome: FC<ThreadWelcomeProps> = ({ scenarioId }) => {
+  const aui = useAui();
+
+  const handleSendDefaultTrigger = () => {
+    if (!scenarioId) return;
+    const text = `Process Scenario: ${scenarioId}`;
+    aui.thread().append({ role: "user", content: [{ type: "text", text }] });
+  };
+
   return (
     <div className="aui-thread-welcome-root my-auto flex grow flex-col">
       <div className="aui-thread-welcome-center flex w-full grow flex-col items-center justify-center">
@@ -102,6 +120,23 @@ const ThreadWelcome: FC = () => {
           <p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-muted-foreground text-xl delay-75 duration-200">
             How can I help you today?
           </p>
+          {scenarioId && (
+            <button
+              onClick={handleSendDefaultTrigger}
+              className="mt-4 w-full text-left cursor-pointer group"
+            >
+              <Card className="hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors">
+                <CardHeader>
+                  <CardTitle className="text-sm font-bold uppercase tracking-wider text-amber-600 dark:text-amber-500">
+                    Brain Default Trigger Message - Click HERE to Start
+                  </CardTitle>
+                  <CardDescription className="text-xs font-mono">
+                    Process Scenario: {scenarioId}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </button>
+          )}
         </div>
       </div>
       <ThreadSuggestions />
