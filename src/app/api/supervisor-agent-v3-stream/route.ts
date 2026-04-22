@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const MASTRA_SERVER_URL =
-  process.env.MASTRA_SERVER_URL ?? "http://localhost:4111";
+  process.env.NEXT_PUBLIC_MASTRA_SERVER_URL ?? "http://localhost:4111";
 
 // Allow streaming responses up to 60 seconds
 export const maxDuration = 60;

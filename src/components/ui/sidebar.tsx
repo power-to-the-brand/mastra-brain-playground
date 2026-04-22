@@ -12,6 +12,8 @@ import {
   Menu,
   LayoutDashboard,
   Save,
+  Wrench,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavItem } from "@/components/ui/nav-item";
@@ -26,7 +28,7 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
   ({ className, collapsed, onToggle, ...props }, ref) => {
     const pathname = usePathname();
 
-    const navItems = [
+    const buildItems = [
       {
         href: "/scenario-builder",
         label: "Scenario Builder",
@@ -36,6 +38,34 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         href: "/scenarios",
         label: "Scenarios",
         icon: <Save size={18} strokeWidth={2} />,
+      },
+      {
+        href: "/agents",
+        label: "Agents",
+        icon: <Users size={18} strokeWidth={2} />,
+      },
+      {
+        href: "/skills",
+        label: "Skills",
+        icon: <Settings size={18} strokeWidth={2} />,
+      },
+      {
+        href: "/references",
+        label: "References",
+        icon: <FileText size={18} strokeWidth={2} />,
+      },
+      {
+        href: "/tools",
+        label: "Tools",
+        icon: <Wrench size={18} strokeWidth={2} />,
+      },
+    ];
+
+    const testItems = [
+      {
+        href: "/runs",
+        label: "Runs",
+        icon: <MessageCircle size={18} strokeWidth={2} />,
       },
       {
         href: "/",
@@ -82,8 +112,8 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         {/* Navigation */}
         <div className="flex flex-1 flex-col justify-between py-4">
           <div className="space-y-1 px-3">
-            <SectionTitle divider={false}>Main</SectionTitle>
-            {navItems.map((item) => (
+            <SectionTitle divider={false}>Build</SectionTitle>
+            {buildItems.map((item) => (
               <NavItem
                 key={item.href}
                 href={item.href}
@@ -96,13 +126,17 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
           </div>
 
           <div className="space-y-1 px-3">
-            <SectionTitle divider={false}>Settings</SectionTitle>
-            <NavItem
-              href="/settings"
-              icon={<Settings size={18} strokeWidth={2} />}
-            >
-              Preferences
-            </NavItem>
+            <SectionTitle divider={false}>Test</SectionTitle>
+            {testItems.map((item) => (
+              <NavItem
+                key={item.href}
+                href={item.href}
+                icon={item.icon}
+                active={pathname === item.href}
+              >
+                {item.label}
+              </NavItem>
+            ))}
           </div>
         </div>
 
