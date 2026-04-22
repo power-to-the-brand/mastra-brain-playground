@@ -38,7 +38,6 @@ export function ScenarioResultsDialog({
   scenarioId,
   scenarioName,
 }: ScenarioResultsDialogProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pastResults, setPastResults] = React.useState<any[]>([]);
   const [loadingResults, setLoadingResults] = React.useState(false);
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
