@@ -191,6 +191,25 @@ export const agentSkillsRelations = relations(agentSkills, ({ one }) => ({
   }),
 }));
 
+// ── Mock Tools ───────────────────────────────────────────────────────────────
+
+export const mockTools = pgTable("mock_tools", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  toolId: varchar("tool_id", { length: 255 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  inputSchema: jsonb("input_schema").notNull().default([]),
+  mockMode: varchar("mock_mode", { length: 20 }).notNull(),
+  mockFixedResponse: jsonb("mock_fixed_response"),
+  mockSimulationPrompt: text("mock_simulation_prompt"),
+  mockSimulationModel: varchar("mock_simulation_model", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type MockTool = typeof mockTools.$inferSelect;
+export type NewMockTool = typeof mockTools.$inferInsert;
+
 export const agentTools = pgTable(
   "agent_tools",
   {
@@ -198,9 +217,10 @@ export const agentTools = pgTable(
       .references(() => agents.id, { onDelete: "cascade" })
       .notNull(),
     toolId: varchar("tool_id", { length: 255 }).notNull(),
+    toolType: varchar("tool_type", { length: 20 }).notNull().default("mastra"),
   },
   (t) => ({
-    pk: primaryKey({ columns: [t.agentId, t.toolId] }),
+    pk: primaryKey({ columns: [t.agentId, t.toolId, t.toolType] }),
   }),
 );
 
