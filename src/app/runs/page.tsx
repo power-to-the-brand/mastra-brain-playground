@@ -80,7 +80,7 @@ export default function RunsPage() {
                   <TableHead className="text-stone-500 dark:text-stone-400 uppercase text-[10px] font-bold tracking-widest">Scenario</TableHead>
                   <TableHead className="text-stone-500 dark:text-stone-400 uppercase text-[10px] font-bold tracking-widest">Tokens</TableHead>
                   <TableHead className="text-stone-500 dark:text-stone-400 uppercase text-[10px] font-bold tracking-widest">Duration</TableHead>
-                  <TableHead className="text-stone-500 dark:text-stone-400 uppercase text-[10px] font-bold tracking-widest">Verdict</TableHead>
+                  <TableHead className="text-stone-500 dark:text-stone-400 uppercase text-[10px] font-bold tracking-widest">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -109,27 +109,33 @@ export default function RunsPage() {
                       </TableCell>
                       <TableCell>
                         <Link href={`/runs/${run.id}`} className="block w-full h-full py-2">
-                          <Badge variant="outline" className="bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/30 text-[10px] font-mono">
-                            {run.agentId.slice(0, 8)}
+                          <Badge variant="outline" className="bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/30 text-[10px] font-mono whitespace-normal text-left leading-tight py-1">
+                            {run.agentName ?? run.agentId.slice(0, 8)}
                           </Badge>
                         </Link>
                       </TableCell>
                       <TableCell className="text-sm font-medium">
                         <Link href={`/runs/${run.id}`} className="block w-full h-full py-2">
-                          {run.scenarioId.slice(0, 8)}
+                          {run.scenarioName ?? run.scenarioId.slice(0, 8)}
                         </Link>
                       </TableCell>
-                      <TableCell className="text-stone-400 text-xs font-mono">—</TableCell>
-                      <TableCell className="text-stone-400 text-xs font-mono">—</TableCell>
+                      <TableCell className="text-stone-400 text-xs font-mono">
+                        {run.metrics?.totalTokens != null ? `${run.metrics.totalTokens}` : run.metrics?.tokens != null ? `${run.metrics.tokens}` : '—'}
+                      </TableCell>
+                      <TableCell className="text-stone-400 text-xs font-mono">
+                        {run.metrics?.duration != null ? `${(run.metrics.duration / 1000).toFixed(1)}s` : '—'}
+                      </TableCell>
                       <TableCell>
                         <Link href={`/runs/${run.id}`} className="block w-full h-full py-2">
                           <Badge className={cn(
                             "text-[10px] font-bold uppercase tracking-tighter",
-                            run.status === 'completed' ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/30" : 
+                            run.verdict === 'passed' ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/30" :
+                            run.verdict === 'failed' ? "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/30" :
+                            run.status === 'completed' ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/30" :
                             run.status === 'failed' ? "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/30" :
                             "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-700"
                           )}>
-                            ● {run.status}
+                            ● {run.verdict ?? run.status}
                           </Badge>
                         </Link>
                       </TableCell>

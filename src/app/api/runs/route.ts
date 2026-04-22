@@ -1,13 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { runs } from "@/db/schema";
-import { desc } from "drizzle-orm";
+import { runs, agents, scenarios } from "@/db/schema";
+import { desc, eq } from "drizzle-orm";
 
 export async function GET() {
   try {
-    const allRuns = await db.query.runs.findMany({
-      orderBy: [desc(runs.createdAt)],
-    });
+    const allRuns = await db
+      .select({
+        id: runs.id,
+        agentId: runs.agentId,
+        agentName: agents.name,
+        scenarioId: runs.scenarioId,
+        scenarioName: scenarios.name,
+        status: runs.status,
+        verdict: runs.verdict,
+        metrics: runs.metrics,
+        output: runs.output,
+        messages: runs.messages,
+        trace: runs.trace,
+        createdAt: runs.createdAt,
+        updatedAt: runs.updatedAt,
+      })
+      .from(runs)
+      .leftJoin(agents, eq(runs.agentId, agents.id))
+      .leftJoin(scenarios, eq(runs.scenarioId, scenarios.id))
+      .orderBy(desc(runs.createdAt));
+
     return NextResponse.json(allRuns);
   } catch (error) {
     console.error("Failed to fetch runs:", error);
