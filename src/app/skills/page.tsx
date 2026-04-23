@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useToast, ToastProvider } from "@/components/ui/toast-provider";
 import { SkillEditorDialog } from "@/components/skill-editor-dialog";
+import { SkillFileManager } from "@/components/skill-file-manager";
 import { Sidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import type { Skill } from "@/db";
@@ -138,7 +139,8 @@ function SkillsPageContent() {
           sidebarCollapsed ? "sm:ml-20" : "sm:ml-64",
         )}
       >
-        <div className="p-8 space-y-6">
+        <SkillFileManager>
+          <div className="p-8 space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Skills Management</h1>
@@ -247,6 +249,7 @@ function SkillsPageContent() {
             </div>
           </div>
         </div>
+        </SkillFileManager>
       </main>
 
       <SkillEditorDialog
