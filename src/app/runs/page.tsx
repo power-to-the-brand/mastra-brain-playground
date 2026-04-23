@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Sidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { Plus, Search, Filter, Download, MoreHorizontal } from "lucide-react";
+import { Plus, Search, Filter, Download, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -16,13 +16,18 @@ export default function RunsPage() {
   const [runs, setRuns] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [page, setPage] = React.useState(1);
+  const [perPage, setPerPage] = React.useState(10);
+  const [totalPages, setTotalPages] = React.useState(1);
 
-  const fetchRuns = async () => {
+  const fetchRuns = async (pageToLoad = page) => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/runs");
+      const response = await fetch(`/api/runs?page=${pageToLoad}&perPage=${perPage}`);
       const data = await response.json();
-      setRuns(data);
+      setRuns(data.data || []);
+      setTotalPages(data.meta?.totalPages || 1);
+      setPage(data.meta?.page || 1);
     } catch (error) {
       console.error("Failed to fetch runs:", error);
     } finally {
@@ -32,7 +37,7 @@ export default function RunsPage() {
 
   React.useEffect(() => {
     fetchRuns();
-  }, []);
+  }, [page, perPage]);
 
   return (
     <div className="flex min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
@@ -144,9 +149,63 @@ export default function RunsPage() {
                 )}
               </TableBody>
             </Table>
-          </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-stone-200 dark:border-stone-800 px-4 py-3">
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                Page {page} of {totalPages}
+              </p>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1 || isLoading}
+                  className="h-8 text-xs px-2 border-stone-200 dark:border-stone-700"
+                >
+                  <ChevronLeft size={14} className="mr-1" />
+                  Previous
+                </Button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from(
+                    { length: totalPages },
+                    (_, i) => i + 1,
+                  ).map((pageNum) => (
+                    <Button
+                      key={pageNum}
+                      size="sm"
+                      variant={pageNum === page ? "default" : "outline"}
+                      onClick={() => setPage(pageNum)}
+                      disabled={isLoading}
+                      className={cn(
+                        "h-8 w-8 p-0 text-xs border-stone-200 dark:border-stone-700",
+                        pageNum === page &&
+                          "bg-amber-600 text-white hover:bg-amber-700 border-amber-600",
+                      )}
+                    >
+                      {pageNum}
+                    </Button>
+                  ))}
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages || isLoading}
+                  className="h-8 text-xs px-2 border-stone-200 dark:border-stone-700"
+                >
+                  Next
+                  <ChevronRight size={14} className="ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
+  </div>
   );
 }

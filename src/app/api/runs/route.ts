@@ -1,10 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { runs, agents, scenarios } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, count } from "drizzle-orm";
 
-export async function GET() {
+// Helper to build pagination
+interface PaginationParams {
+  page?: number;
+  perPage?: number;
+}
+
+interface PaginatedResult<T> {
+  data: T[];
+  meta: {
+    total: number;
+    page: number;
+    perPage: number;
+    totalPages: number;
+  };
+}
+
+function getPagination(searchParams: URLSearchParams): PaginationParams {
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const perPage = parseInt(searchParams.get("perPage") || "10", 10);
+
+  return {
+    page: isNaN(page) ? 1 : page,
+    perPage: isNaN(perPage) ? 10 : perPage,
+  };
+}
+
+function calculatePagination(
+  total: number,
+  page: number,
+  perPage: number,
+): PaginatedResult<unknown>["meta"] {
+  const totalPages = Math.ceil(total / perPage);
+
+  return {
+    total,
+    page,
+    perPage,
+    totalPages,
+  };
+}
+
+export async function GET(request: NextRequest) {
   try {
+    const searchParams = request.nextUrl.searchParams;
+    const { page = 1, perPage = 10 } = getPagination(searchParams);
+
+    // Count total records
+    const [{ count: total }] = await db
+      .select({ count: count(runs.id) })
+      .from(runs);
+
+    // Fetch runs with pagination, ordered by createdAt descending
+    const offset = (page - 1) * perPage;
     const allRuns = await db
       .select({
         id: runs.id,
@@ -24,9 +75,16 @@ export async function GET() {
       .from(runs)
       .leftJoin(agents, eq(runs.agentId, agents.id))
       .leftJoin(scenarios, eq(runs.scenarioId, scenarios.id))
-      .orderBy(desc(runs.createdAt));
+      .orderBy(desc(runs.createdAt))
+      .limit(perPage)
+      .offset(offset);
 
-    return NextResponse.json(allRuns);
+    const meta = calculatePagination(total, page, perPage);
+
+    return NextResponse.json({
+      data: allRuns,
+      meta,
+    });
   } catch (error) {
     console.error("Failed to fetch runs:", error);
     return NextResponse.json({ error: "Failed to fetch runs" }, { status: 500 });
