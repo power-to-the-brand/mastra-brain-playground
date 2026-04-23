@@ -26,7 +26,7 @@ interface Agent {
   createdAt: string;
   subagents: { agentId: string; subagentId: string }[];
   skills: { agentId: string; skillId: string }[];
-  tools: { agentId: string; toolId: string }[];
+  tools: { agentId: string; toolId: string; toolType: string }[];
 }
 
 export default function AgentsPage() {
@@ -34,6 +34,9 @@ export default function AgentsPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [availableSkills, setAvailableSkills] = useState<{ id: string; name: string }[]>([]);
   const [availableTools, setAvailableTools] = useState<{ id: string; name: string; description: string }[]>([]);
+  const [availableMockTools, setAvailableMockTools] = useState<
+    { id: string; name: string; description: string; toolId: string }[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshingTools, setIsRefreshingTools] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -43,15 +46,17 @@ export default function AgentsPage() {
     setIsLoading(true);
     console.log("Fetching agents, skills, and tools...");
     try {
-      const [agentsRes, skillsRes, toolsRes] = await Promise.all([
+      const [agentsRes, skillsRes, toolsRes, mockToolsRes] = await Promise.all([
         fetch("/api/agents"),
         fetch("/api/skills"),
         fetch("/api/tools"),
+        fetch("/api/mock-tools"),
       ]);
 
       const agentsRaw = await agentsRes.json();
       const skillsRaw = await skillsRes.json();
       const toolsRaw = await toolsRes.json();
+      const mockToolsRaw = await mockToolsRes.json();
 
       console.log("Raw tools response:", toolsRaw);
 
@@ -103,10 +108,14 @@ export default function AgentsPage() {
       const agentsData = extractArray(agentsRaw);
       const skillsData = extractArray(skillsRaw);
       const toolsData = extractArray(toolsRaw);
+      const mockToolsData = Array.isArray(mockToolsRaw?.data)
+        ? mockToolsRaw.data
+        : [];
 
       setAgents(agentsData);
       setAvailableSkills(skillsData);
       setAvailableTools(toolsData);
+      setAvailableMockTools(mockToolsData);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -218,12 +227,13 @@ export default function AgentsPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="px-1">
-                  <AgentForm 
-                    agent={editingAgent} 
-                    availableAgents={agents.filter(a => a.id !== editingAgent?.id)}
+                  <AgentForm
+                    agent={editingAgent}
+                    availableAgents={agents.filter((a) => a.id !== editingAgent?.id)}
                     availableSkills={availableSkills}
                     availableTools={availableTools}
-                    onSuccess={handleFormSuccess} 
+                    availableMockTools={availableMockTools}
+                    onSuccess={handleFormSuccess}
                     onCancel={() => setIsFormOpen(false)}
                     onRefreshTools={refreshTools}
                     isRefreshingTools={isRefreshingTools}
@@ -283,9 +293,14 @@ export default function AgentsPage() {
                           {agent.skills.length} Skills
                         </Badge>
                       )}
-                      {agent.tools?.length > 0 && (
+                      {agent.tools?.filter((t) => t.toolType === "mastra").length > 0 && (
                         <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-none">
-                          {agent.tools.length} Tools
+                          {agent.tools.filter((t) => t.toolType === "mastra").length} Tools
+                        </Badge>
+                      )}
+                      {agent.tools?.filter((t) => t.toolType === "mock").length > 0 && (
+                        <Badge variant="secondary" className="bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-none">
+                          {agent.tools.filter((t) => t.toolType === "mock").length} Mock Tools
                         </Badge>
                       )}
                       {agent.subagents?.length > 0 && (
