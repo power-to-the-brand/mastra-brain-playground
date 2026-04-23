@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,10 +23,11 @@ import {
   Database,
   MessageCircle,
   Play,
+  Pencil,
 } from "lucide-react";
 import type { Scenario } from "@/db/schema";
 import { ToastProvider, useToast } from "@/components/ui/toast-provider";
-import { ScenarioDetailDialog } from "@/components/scenario-detail-dialog";
+import { NewScenarioDialog } from "@/components/new-scenario-dialog";
 import { ScenarioResultsDialog } from "@/components/scenario-results-dialog";
 
 interface ScenarioWithMeta extends Scenario {
@@ -47,7 +47,6 @@ interface ScenarioWithMeta extends Scenario {
 }
 
 function ScenariosPageContent() {
-  const router = useRouter();
   const { addToast } = useToast();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [scenarios, setScenarios] = useState<ScenarioWithMeta[]>([]);
@@ -56,13 +55,13 @@ function ScenariosPageContent() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
-  const [selectedScenario, setSelectedScenario] =
-    useState<ScenarioWithMeta | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [resultsDialogOpen, setResultsDialogOpen] = useState(false);
   const [selectedScenarioForResults, setSelectedScenarioForResults] =
     useState<ScenarioWithMeta | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [scenarioToEdit, setScenarioToEdit] =
+    useState<ScenarioWithMeta | null>(null);
+  const [newDialogOpen, setNewDialogOpen] = useState(false);
 
   const loadScenarios = async (pageToLoad = page) => {
     setLoading(true);
@@ -103,109 +102,10 @@ function ScenariosPageContent() {
   }, [page, perPage]);
 
   const handleRowClick = (scenario: ScenarioWithMeta) => {
-    setSelectedScenario(scenario);
-    setDialogOpen(true);
+    setScenarioToEdit(scenario);
+    setEditDialogOpen(true);
   };
 
-  const handleUpdateOnly = async (scenario: {
-    id: string;
-    name: string;
-    conversationMessages: ScenarioWithMeta["conversationMessages"];
-    srData: ScenarioWithMeta["srData"];
-    pastSupplierConversation: ScenarioWithMeta["pastSupplierConversation"];
-  }) => {
-    setIsUpdating(true);
-    try {
-      const response = await fetch("/api/scenarios", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: scenario.id,
-          name: scenario.name,
-          conversationMessages: scenario.conversationMessages,
-          srData: scenario.srData,
-          pastSupplierConversation: scenario.pastSupplierConversation,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || `Request failed with status ${response.status}`,
-        );
-      }
-
-      addToast(`Scenario "${scenario.name}" updated successfully!`, "success");
-      setDialogOpen(false);
-      setSelectedScenario(null);
-      loadScenarios();
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to update scenario";
-      addToast(message, "error");
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handleUpdateAndLoad = async (scenario: {
-    id: string;
-    name: string;
-    conversationMessages: ScenarioWithMeta["conversationMessages"];
-    srData: ScenarioWithMeta["srData"];
-    pastSupplierConversation: ScenarioWithMeta["pastSupplierConversation"];
-  }) => {
-    setIsUpdating(true);
-    try {
-      const response = await fetch("/api/scenarios", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: scenario.id,
-          name: scenario.name,
-          conversationMessages: scenario.conversationMessages,
-          srData: scenario.srData,
-          pastSupplierConversation: scenario.pastSupplierConversation,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || `Request failed with status ${response.status}`,
-        );
-      }
-
-      const data = await response.json();
-
-      sessionStorage.setItem(
-        "scenario_conversation",
-        JSON.stringify(data.data.conversationMessages),
-      );
-      sessionStorage.setItem(
-        "scenario_sr_data",
-        JSON.stringify(data.data.srData),
-      );
-      sessionStorage.setItem(
-        "scenario_supplier_chat",
-        JSON.stringify(data.data.pastSupplierConversation),
-      );
-      sessionStorage.setItem("scenario_id", data.data.id);
-      sessionStorage.setItem("scenario_name", data.data.name);
-
-      addToast(
-        `Scenario "${scenario.name}" updated. Loading into playground...`,
-        "success",
-      );
-      window.location.href = "/";
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to update scenario";
-      addToast(message, "error");
-    } finally {
-      setIsUpdating(false);
-    }
-  };
 
   const handleLoadIntoPlayground = (scenario: ScenarioWithMeta) => {
     sessionStorage.setItem(
@@ -248,7 +148,7 @@ function ScenariosPageContent() {
   };
 
   const handleNewScenario = () => {
-    router.push("/scenario-builder");
+    setNewDialogOpen(true);
   };
 
   if (loading && scenarios.length === 0) {
@@ -455,14 +355,29 @@ function ScenariosPageContent() {
                           </Button>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => handleDelete(scenario.id, e)}
-                            className="text-destructive/60 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
-                          >
-                            <Trash2 size={14} />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRowClick(scenario);
+                              }}
+                              className="text-muted-foreground/60 hover:text-foreground hover:bg-muted h-8 w-8 p-0"
+                              title="Edit scenario"
+                            >
+                              <Pencil size={14} />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => handleDelete(scenario.id, e)}
+                              className="text-destructive/60 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
+                              title="Delete scenario"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -528,13 +443,24 @@ function ScenariosPageContent() {
         </main>
       </div>
 
-      <ScenarioDetailDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        scenario={selectedScenario}
-        onUpdateOnly={handleUpdateOnly}
-        onUpdateAndLoad={handleUpdateAndLoad}
-        isUpdating={isUpdating}
+      <NewScenarioDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onUpdated={() => {
+          addToast("Scenario updated successfully!", "success");
+          setScenarioToEdit(null);
+          loadScenarios();
+        }}
+        scenario={scenarioToEdit}
+      />
+
+      <NewScenarioDialog
+        open={newDialogOpen}
+        onOpenChange={setNewDialogOpen}
+        onCreated={() => {
+          addToast("Scenario created successfully!", "success");
+          loadScenarios();
+        }}
       />
 
       <ScenarioResultsDialog

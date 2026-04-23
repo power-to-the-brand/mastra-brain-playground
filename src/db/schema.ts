@@ -14,10 +14,10 @@ import { relations } from "drizzle-orm";
 export const scenarios = pgTable("scenarios", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
-  conversationMessages: jsonb("conversation_messages").notNull(),
-  srData: jsonb("sr_data").notNull(),
+  conversationMessages: jsonb("conversation_messages"),
+  srData: jsonb("sr_data"),
   products: jsonb("products"),
-  pastSupplierConversation: jsonb("past_supplier_conversation").notNull(),
+  pastSupplierConversation: jsonb("past_supplier_conversation"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
