@@ -217,7 +217,7 @@ export const agentTools = pgTable(
       .references(() => agents.id, { onDelete: "cascade" })
       .notNull(),
     toolId: varchar("tool_id", { length: 255 }).notNull(),
-    toolType: varchar("tool_type", { length: 20 }).default("mastra"),
+    toolType: varchar("tool_type", { length: 20 }).notNull().default("mastra"),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.agentId, t.toolId, t.toolType] }),
