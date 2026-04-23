@@ -2,10 +2,12 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, List
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || "ap-southeast-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-  },
+  ...(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && {
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    }
+  })
 });
 
 const BUCKET_NAME = process.env.AWS_S3_BUCKET || "mastra-brain-agent-skills";
