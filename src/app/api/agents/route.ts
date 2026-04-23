@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, description, model, instruction, subagentIds, skillIds, toolIds } = body;
+    const { name, description, model, instruction, subagentIds, skillIds, toolIds, mockToolIds } = body;
 
     const [newAgent] = await db.insert(agents).values({
       name,
@@ -54,6 +54,17 @@ export async function POST(request: Request) {
         toolIds.map((toolId: string) => ({
           agentId: newAgent.id,
           toolId,
+          toolType: "mastra",
+        }))
+      );
+    }
+
+    if (mockToolIds && mockToolIds.length > 0) {
+      await db.insert(agentTools).values(
+        mockToolIds.map((toolId: string) => ({
+          agentId: newAgent.id,
+          toolId,
+          toolType: "mock",
         }))
       );
     }
