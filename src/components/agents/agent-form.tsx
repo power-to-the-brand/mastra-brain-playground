@@ -262,9 +262,44 @@ export function AgentForm({
   };
 
   const toggleMockTool = (id: string) => {
-    setSelectedMockToolIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
+    setSelectedMockToolIds((prev) => {
+      const isSelecting = !prev.includes(id);
+
+      if (!isSelecting) {
+        setBuilderTools((bPrev) => bPrev.filter((t) => t.toolId !== id));
+      } else {
+        setBuilderTools((bPrev) => {
+          if (bPrev.some((t) => t.toolId === id)) return bPrev;
+          const tool = availableMockTools.find((t) => t.toolId === id);
+          if (!tool) return bPrev;
+          return [
+            ...bPrev,
+            {
+              id: tool.id,
+              clientId: generateId(),
+              toolId: tool.toolId,
+              name: tool.name,
+              description: tool.description || "",
+              inputSchema: (tool.inputSchema || []).map((p: any) => ({
+                id: generateId(),
+                name: p.name || "",
+                type: p.type || "string",
+                description: p.description || "",
+                required: p.required ?? true,
+              })),
+              mockMode: (tool.mockMode as "fixed_response" | "llm_simulated") || "fixed_response",
+              mockFixedResponse: tool.mockFixedResponse
+                ? JSON.stringify(tool.mockFixedResponse, null, 2)
+                : "",
+              mockSimulationPrompt: tool.mockSimulationPrompt || "",
+              mockSimulationModel: tool.mockSimulationModel || MODELS[0].value,
+            },
+          ];
+        });
+      }
+
+      return isSelecting ? [...prev, id] : prev.filter((i) => i !== id);
+    });
   };
 
   return (
@@ -370,7 +405,7 @@ export function AgentForm({
 
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <Label className="text-stone-700 dark:text-stone-300">Tools</Label>
+          <Label className="text-stone-700 dark:text-stone-300">Mastra Tools (Deprecated)</Label>
           {onRefreshTools && (
             <button
               type="button"
