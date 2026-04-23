@@ -8,13 +8,13 @@ interface FileTreeProps {
   rootPrefix?: string;
   onSelectSkill?: (prefix: string) => void;
   onDropFiles?: (files: FileList | null, targetPrefix: string) => void;
-  onContextMenu?: (e: React.MouseEvent, node: TreeNode) => void;
 }
 
-export function FileTree({ rootPrefix = 'playground/files/', onSelectSkill, onDropFiles, onContextMenu }: FileTreeProps) {
+export function FileTree({ rootPrefix = 'playground/files/', onSelectSkill, onDropFiles }: FileTreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set([rootPrefix]));
   const [treeData, setTreeData] = useState<Record<string, { folders: TreeNode[]; files: TreeNode[] }>>({});
   const [loading, setLoading] = useState<Set<string>>(new Set());
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: TreeNode } | null>(null);
 
   const fetchTree = useCallback(async (prefix: string) => {
     setLoading((prev) => new Set(prev).add(prefix));
@@ -51,6 +51,32 @@ export function FileTree({ rootPrefix = 'playground/files/', onSelectSkill, onDr
     }
   }, [onDropFiles]);
 
+  const handleContextMenu = useCallback((e: React.MouseEvent, node: TreeNode) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, node });
+  }, []);
+
+  const createFolder = useCallback(async (prefix: string, folderName: string) => {
+    const newPrefix = prefix.endsWith('/') ? `${prefix}${folderName}/` : `${prefix}/${folderName}/`;
+    await fetch('/api/s3/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetPrefix: newPrefix, files: [{ path: '.keep', content: '', encoding: 'utf8' }] }),
+    });
+    await fetchTree(prefix);
+  }, [fetchTree]);
+
+  const deleteNode = useCallback(async (node: TreeNode) => {
+    await fetch('/api/s3/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(node.type === 'folder' ? { prefix: node.prefix } : { key: node.prefix }),
+    });
+    // Refresh parent
+    const parentPrefix = node.prefix.substring(0, node.prefix.lastIndexOf('/', node.prefix.length - 2) + 1);
+    await fetchTree(parentPrefix || rootPrefix);
+  }, [fetchTree, rootPrefix]);
+
   const rootData = treeData[rootPrefix];
 
   return (
@@ -63,7 +89,7 @@ export function FileTree({ rootPrefix = 'playground/files/', onSelectSkill, onDr
           level={0}
           onToggle={toggle}
           onSelect={(node) => node.hasSkill && onSelectSkill?.(node.prefix)}
-          onContextMenu={onContextMenu || (() => {})}
+          onContextMenu={handleContextMenu}
           onDrop={handleDrop}
           isExpanded={expanded.has(folder.prefix)}
           isLoading={loading.has(folder.prefix)}
@@ -74,8 +100,37 @@ export function FileTree({ rootPrefix = 'playground/files/', onSelectSkill, onDr
         />
       ))}
       {rootData?.files.map((file) => (
-        <FileTreeNode key={file.prefix} node={file} level={0} onToggle={toggle} onSelect={(node) => node.hasSkill && onSelectSkill?.(node.prefix)} onContextMenu={onContextMenu || (() => {})} onDrop={handleDrop} />
+        <FileTreeNode key={file.prefix} node={file} level={0} onToggle={toggle} onSelect={(node) => node.hasSkill && onSelectSkill?.(node.prefix)} onContextMenu={handleContextMenu} onDrop={handleDrop} />
       ))}
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-popover border rounded-md shadow-md py-1 min-w-[160px]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onMouseLeave={() => setContextMenu(null)}
+        >
+          {contextMenu.node.type === 'folder' && (
+            <button
+              className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
+              onClick={() => {
+                const name = prompt('Folder name:');
+                if (name) createFolder(contextMenu.node.prefix, name);
+                setContextMenu(null);
+              }}
+            >
+              New Folder
+            </button>
+          )}
+          <button
+            className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent text-destructive"
+            onClick={() => {
+              if (confirm(`Delete ${contextMenu.node.name}?`)) deleteNode(contextMenu.node);
+              setContextMenu(null);
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 }
