@@ -36,7 +36,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, description, model, instruction, subagentIds, skillIds, toolIds } = body;
+    const { name, description, model, instruction, subagentIds, skillIds, toolIds, mockToolIds } = body;
 
     await db.update(agents)
       .set({ name, description, model, instruction, updatedAt: new Date() })
@@ -68,14 +68,26 @@ export async function PATCH(
       }
     }
 
-    // Update tools
-    if (toolIds) {
+    // Update tools (both real and mock)
+    if (toolIds !== undefined || mockToolIds !== undefined) {
       await db.delete(agentTools).where(eq(agentTools.agentId, id));
-      if (toolIds.length > 0) {
+
+      if (toolIds && toolIds.length > 0) {
         await db.insert(agentTools).values(
           toolIds.map((toolId: string) => ({
             agentId: id,
             toolId,
+            toolType: "mastra" as const,
+          }))
+        );
+      }
+
+      if (mockToolIds && mockToolIds.length > 0) {
+        await db.insert(agentTools).values(
+          mockToolIds.map((toolId: string) => ({
+            agentId: id,
+            toolId,
+            toolType: "mock" as const,
           }))
         );
       }
