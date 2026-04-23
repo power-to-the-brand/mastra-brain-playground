@@ -67,11 +67,6 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         label: "Runs",
         icon: <MessageCircle size={18} strokeWidth={2} />,
       },
-      {
-        href: "/playground",
-        label: "Playground",
-        icon: <Home size={18} strokeWidth={2} />,
-      },
     ];
 
     return (
