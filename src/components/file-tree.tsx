@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { FileTreeNode } from './file-tree-node';
 import { TreeNode } from '@/lib/s3';
 
@@ -12,7 +12,7 @@ interface FileTreeProps {
 
 export function FileTree({ rootPrefix = 'playground/files/', onSelectSkill, onDropFiles }: FileTreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set([rootPrefix]));
-  const [treeData, setTreeData] = useState<Record<string, { folders: TreeNode[]; files: TreeNode[] }>>({});
+  const [treeData, setTreeData] = useState<Record<string, { folders: TreeNode[]; files: TreeNode[]; hasSkill?: boolean }>>({});
   const [loading, setLoading] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: TreeNode } | null>(null);
 
@@ -21,13 +21,42 @@ export function FileTree({ rootPrefix = 'playground/files/', onSelectSkill, onDr
     try {
       const res = await fetch(`/api/s3/tree?prefix=${encodeURIComponent(prefix)}`);
       const data = await res.json();
-      setTreeData((prev) => ({ ...prev, [prefix]: data }));
+
+      const hasSkill = data.files.some((f: TreeNode) => f.name === 'SKILL.md');
+
+      setTreeData((prev) => {
+        const next = { ...prev, [prefix]: { ...data, hasSkill } };
+        return next;
+      });
+
+      // Mark parent folder if this prefix contains SKILL.md
+      if (hasSkill) {
+        const parentPrefix = prefix.substring(0, prefix.lastIndexOf('/', prefix.length - 2) + 1);
+        if (parentPrefix) {
+          setTreeData((prev) => {
+            const parent = prev[parentPrefix];
+            if (!parent) return prev;
+            const updatedFolders = parent.folders.map((f) =>
+              f.prefix === prefix ? { ...f, hasSkill: true } : f
+            );
+            return { ...prev, [parentPrefix]: { ...parent, folders: updatedFolders } };
+          });
+        }
+      }
     } catch (err) {
       console.error('Failed to fetch tree:', err);
     } finally {
-      setLoading((prev) => { const next = new Set(prev); next.delete(prefix); return next; });
+      setLoading((prev) => {
+        const next = new Set(prev);
+        next.delete(prefix);
+        return next;
+      });
     }
   }, []);
+
+  useEffect(() => {
+    fetchTree(rootPrefix);
+  }, [fetchTree, rootPrefix]);
 
   const toggle = useCallback((prefix: string) => {
     setExpanded((prev) => {
