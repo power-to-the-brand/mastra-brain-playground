@@ -18,13 +18,14 @@ import {
   Loader2,
   ExternalLink,
   Search,
+  Upload,
 } from "lucide-react";
 import { useToast, ToastProvider } from "@/components/ui/toast-provider";
 import { SkillEditorDialog } from "@/components/skill-editor-dialog";
-import { SkillFileManager } from "@/components/skill-file-manager";
 import { Sidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import type { Skill } from "@/db";
+import Link from "next/link";
 
 function SkillsPageContent() {
   const { addToast } = useToast();
@@ -139,8 +140,7 @@ function SkillsPageContent() {
           sidebarCollapsed ? "sm:ml-20" : "sm:ml-64",
         )}
       >
-        <SkillFileManager>
-          <div className="p-8 space-y-6">
+        <div className="p-8 space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Skills Management</h1>
@@ -148,10 +148,18 @@ function SkillsPageContent() {
                 Manage dynamic skills stored in S3 for Mastra agents.
               </p>
             </div>
-            <Button onClick={handleCreate} className="gap-2">
-              <Plus size={16} />
-              Create Skill
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link href="/skills/bulk-upload">
+                <Button variant="outline" className="gap-2">
+                  <Upload size={16} />
+                  Bulk Upload
+                </Button>
+              </Link>
+              <Button onClick={handleCreate} className="gap-2">
+                <Plus size={16} />
+                Create Skill
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 max-w-sm">
@@ -249,7 +257,6 @@ function SkillsPageContent() {
             </div>
           </div>
         </div>
-        </SkillFileManager>
       </main>
 
       <SkillEditorDialog
