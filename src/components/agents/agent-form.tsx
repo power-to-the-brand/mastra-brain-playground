@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Check, RefreshCw } from "lucide-react";
+import { MockToolBuilder, MockToolData } from "@/components/agents/mock-tool-builder";
 
 interface AgentData {
   id: string;
@@ -15,7 +16,7 @@ interface AgentData {
   instruction: string;
   subagents?: { subagentId: string }[];
   skills?: { skillId: string }[];
-  tools?: { toolId: string }[];
+  tools?: { toolId: string; toolType: string }[];
 }
 
 interface AgentFormProps {
@@ -23,6 +24,7 @@ interface AgentFormProps {
   availableAgents: AgentData[];
   availableSkills: { id: string; name: string }[];
   availableTools: { id: string; name: string; description: string }[];
+  availableMockTools: { id: string; name: string; description: string; toolId: string }[];
   onSuccess: () => void;
   onCancel: () => void;
   onRefreshTools?: () => void;
@@ -35,12 +37,13 @@ const MODELS = [
   { label: "Gemini 2.0 Flash", value: "google/gemini-2.0-flash" },
 ];
 
-export function AgentForm({ 
-  agent, 
-  availableAgents, 
-  availableSkills, 
-  availableTools, 
-  onSuccess, 
+export function AgentForm({
+  agent,
+  availableAgents,
+  availableSkills,
+  availableTools,
+  availableMockTools,
+  onSuccess,
   onCancel,
   onRefreshTools,
   isRefreshingTools,
@@ -56,14 +59,110 @@ export function AgentForm({
     Array.isArray(agent?.skills) ? agent.skills.map((s) => s.skillId) : []
   );
   const [selectedToolIds, setSelectedToolIds] = useState<string[]>(
-    Array.isArray(agent?.tools) ? agent.tools.map((t) => t.toolId) : []
+    Array.isArray(agent?.tools)
+      ? agent.tools.filter((t) => t.toolType !== "mock").map((t) => t.toolId)
+      : []
   );
+  const [selectedMockToolIds, setSelectedMockToolIds] = useState<string[]>(
+    Array.isArray(agent?.tools)
+      ? agent.tools.filter((t) => t.toolType === "mock").map((t) => t.toolId)
+      : []
+  );
+  const [builderTools, setBuilderTools] = useState<MockToolData[]>([]);
+  const [isSavingMockTools, setIsSavingMockTools] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (agent) {
+      setName(agent.name || "");
+      setDescription(agent.description || "");
+      setModel(agent.model || MODELS[0].value);
+      setInstruction(agent.instruction || "");
+      setSelectedSubagentIds(
+        Array.isArray(agent.subagents) ? agent.subagents.map((s) => s.subagentId) : []
+      );
+      setSelectedSkillIds(
+        Array.isArray(agent.skills) ? agent.skills.map((s) => s.skillId) : []
+      );
+      setSelectedToolIds(
+        Array.isArray(agent.tools)
+          ? agent.tools.filter((t) => t.toolType !== "mock").map((t) => t.toolId)
+          : []
+      );
+      setSelectedMockToolIds(
+        Array.isArray(agent.tools)
+          ? agent.tools.filter((t) => t.toolType === "mock").map((t) => t.toolId)
+          : []
+      );
+    }
+  }, [agent]);
+
+  const saveMockTools = async (): Promise<string[]> => {
+    setIsSavingMockTools(true);
+    const savedIds: string[] = [...selectedMockToolIds];
+
+    try {
+      for (const tool of builderTools) {
+        if (!tool.name.trim()) continue;
+
+        const payload = {
+          toolId: tool.toolId,
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema.map((p) => ({
+            name: p.name,
+            type: p.type,
+            description: p.description,
+            required: p.required,
+          })),
+          mockMode: tool.mockMode,
+          mockFixedResponse:
+            tool.mockMode === "fixed_response" && tool.mockFixedResponse
+              ? JSON.parse(tool.mockFixedResponse)
+              : null,
+          mockSimulationPrompt:
+            tool.mockMode === "llm_simulated" ? tool.mockSimulationPrompt : null,
+          mockSimulationModel:
+            tool.mockMode === "llm_simulated" ? tool.mockSimulationModel : null,
+        };
+
+        if (tool.id) {
+          const res = await fetch(`/api/mock-tools/${tool.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            savedIds.push(data.data.toolId);
+          }
+        } else {
+          const res = await fetch("/api/mock-tools", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            savedIds.push(data.data.toolId);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error saving mock tools:", error);
+    } finally {
+      setIsSavingMockTools(false);
+    }
+
+    return savedIds;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    const mockToolIds = await saveMockTools();
 
     const payload = {
       name,
@@ -73,6 +172,7 @@ export function AgentForm({
       subagentIds: selectedSubagentIds,
       skillIds: selectedSkillIds,
       toolIds: selectedToolIds,
+      mockToolIds,
     };
 
     console.log("Saving agent with payload:", payload);
@@ -80,7 +180,7 @@ export function AgentForm({
     try {
       const url = agent ? `/api/agents/${agent.id}` : "/api/agents";
       const method = agent ? "PATCH" : "POST";
-      
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -110,8 +210,14 @@ export function AgentForm({
   };
 
   const toggleTool = (id: string) => {
-    setSelectedToolIds(prev => 
+    setSelectedToolIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleMockTool = (id: string) => {
+    setSelectedMockToolIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
   };
 
@@ -255,12 +361,48 @@ export function AgentForm({
         </div>
       </div>
 
+      {/* Mock Tools Builder */}
+      <div className="space-y-3 pt-2 border-t border-stone-200 dark:border-stone-800">
+        <Label className="text-stone-700 dark:text-stone-300 font-medium">Mock Tools</Label>
+        <MockToolBuilder
+          tools={builderTools}
+          onChange={setBuilderTools}
+          availableModels={MODELS}
+        />
+      </div>
+
+      {/* Mock Tool Selector */}
+      <div className="space-y-3">
+        <Label className="text-stone-700 dark:text-stone-300">Available Mock Tools</Label>
+        <div className="flex flex-wrap gap-2">
+          {availableMockTools.length === 0 ? (
+            <p className="text-xs text-stone-500 italic">No mock tools available. Create one above.</p>
+          ) : (
+            availableMockTools.map((t) => (
+              <Badge
+                key={t.id}
+                variant={selectedMockToolIds.includes(t.toolId) ? "default" : "outline"}
+                className={`cursor-pointer transition-all ${
+                  selectedMockToolIds.includes(t.toolId)
+                    ? "bg-purple-600 hover:bg-purple-700 text-white border-none"
+                    : "hover:bg-stone-100 dark:hover:bg-stone-800"
+                }`}
+                onClick={() => toggleMockTool(t.toolId)}
+              >
+                {t.name}
+                {selectedMockToolIds.includes(t.toolId) && <Check className="ml-1 h-3 w-3" />}
+              </Badge>
+            ))
+          )}
+        </div>
+      </div>
+
       <div className="flex justify-end space-x-3 pt-4">
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           disabled={isLoading}
           className="bg-amber-600 hover:bg-amber-700 text-white min-w-25"
         >
