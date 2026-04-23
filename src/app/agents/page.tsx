@@ -217,7 +217,7 @@ export default function AgentsPage() {
               <DialogTrigger render={<Button className="bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-900/20" />}>
                 <Plus className="mr-2 h-4 w-4" /> Create Agent
               </DialogTrigger>
-              <DialogContent className="sm:max-w-160 max-h-[92vh] overflow-y-auto bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700">
+              <DialogContent className="sm:max-w-[56rem] max-h-[92vh] overflow-y-auto bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700">
                 <DialogHeader className="pb-4">
                   <DialogTitle className="font-serif text-2xl">
                     {editingAgent ? "Edit Agent" : "Create New Agent"}

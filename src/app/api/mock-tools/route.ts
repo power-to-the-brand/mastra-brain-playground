@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       mockSimulationModel,
     } = body;
 
-    const [newMockTool] = await db
+    const result = await db
       .insert(mockTools)
       .values({
         toolId,
@@ -44,7 +44,22 @@ export async function POST(request: Request) {
         mockSimulationPrompt,
         mockSimulationModel,
       })
+      .onConflictDoUpdate({
+        target: mockTools.toolId,
+        set: {
+          name,
+          description,
+          inputSchema: inputSchema ?? [],
+          mockMode,
+          mockFixedResponse,
+          mockSimulationPrompt,
+          mockSimulationModel,
+          updatedAt: new Date(),
+        },
+      })
       .returning();
+
+    const newMockTool = result[0];
 
     return NextResponse.json({ data: newMockTool });
   } catch (error) {

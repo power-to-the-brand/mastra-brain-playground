@@ -19,6 +19,7 @@ interface InputParam {
 
 export interface MockToolData {
   id?: string;
+  clientId?: string;
   toolId: string;
   name: string;
   description: string;
@@ -53,10 +54,11 @@ export function MockToolBuilder({
   onChange,
   availableModels,
 }: MockToolBuilderProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const addTool = () => {
     const newTool: MockToolData = {
+      clientId: generateId(),
       toolId: "",
       name: "",
       description: "",
@@ -67,7 +69,7 @@ export function MockToolBuilder({
       mockSimulationModel: availableModels[0]?.value ?? "",
     };
     onChange([...tools, newTool]);
-    setExpandedId(newTool.toolId);
+    setExpandedIndex(tools.length);
   };
 
   const updateTool = (index: number, updates: Partial<MockToolData>) => {
@@ -81,6 +83,11 @@ export function MockToolBuilder({
 
   const removeTool = (index: number) => {
     onChange(tools.filter((_, i) => i !== index));
+    if (expandedIndex === index) {
+      setExpandedIndex(null);
+    } else if (expandedIndex !== null && expandedIndex > index) {
+      setExpandedIndex(expandedIndex - 1);
+    }
   };
 
   const addParam = (toolIndex: number) => {
@@ -118,16 +125,16 @@ export function MockToolBuilder({
     <div className="space-y-4">
       <div className="space-y-3">
         {tools.map((tool, toolIndex) => {
-          const isExpanded = expandedId === tool.toolId;
+          const isExpanded = expandedIndex === toolIndex;
           const paramCount = tool.inputSchema.length;
           return (
             <div
-              key={tool.toolId + toolIndex}
+              key={tool.clientId ?? tool.id ?? tool.toolId + toolIndex}
               className="border border-stone-200 dark:border-stone-800 rounded-xl bg-white dark:bg-stone-950 overflow-hidden"
             >
               <div
                 className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-900/50 transition-colors"
-                onClick={() => setExpandedId(isExpanded ? null : tool.toolId)}
+                onClick={() => setExpandedIndex(isExpanded ? null : toolIndex)}
               >
                 <div className="flex items-center gap-3">
                   <GripVertical className="h-4 w-4 text-stone-400" />

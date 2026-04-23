@@ -8,6 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Check, RefreshCw } from "lucide-react";
 import { MockToolBuilder, MockToolData } from "@/components/agents/mock-tool-builder";
 
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 9);
+}
+
 interface AgentData {
   id: string;
   name: string;
@@ -19,12 +23,24 @@ interface AgentData {
   tools?: { toolId: string; toolType: string }[];
 }
 
+interface AvailableMockTool {
+  id: string;
+  toolId: string;
+  name: string;
+  description?: string | null;
+  inputSchema?: any[];
+  mockMode?: string;
+  mockFixedResponse?: any;
+  mockSimulationPrompt?: string | null;
+  mockSimulationModel?: string | null;
+}
+
 interface AgentFormProps {
   agent?: AgentData | null;
   availableAgents: AgentData[];
   availableSkills: { id: string; name: string }[];
   availableTools: { id: string; name: string; description: string }[];
-  availableMockTools: { id: string; name: string; description: string; toolId: string }[];
+  availableMockTools: AvailableMockTool[];
   onSuccess: () => void;
   onCancel: () => void;
   onRefreshTools?: () => void;
@@ -95,8 +111,47 @@ export function AgentForm({
           ? agent.tools.filter((t) => t.toolType === "mock").map((t) => t.toolId)
           : []
       );
+
+      // Populate builder with selected mock tools so they can be edited
+      const selectedMockTools = availableMockTools.filter((t) =>
+        agent.tools?.some((at) => at.toolType === "mock" && at.toolId === t.toolId)
+      );
+
+      setBuilderTools(
+        selectedMockTools.map((t) => ({
+          id: t.id,
+          clientId: generateId(),
+          toolId: t.toolId,
+          name: t.name,
+          description: t.description || "",
+          inputSchema: (t.inputSchema || []).map((p: any) => ({
+            id: generateId(),
+            name: p.name || "",
+            type: p.type || "string",
+            description: p.description || "",
+            required: p.required ?? true,
+          })),
+          mockMode: (t.mockMode as "fixed_response" | "llm_simulated") || "fixed_response",
+          mockFixedResponse: t.mockFixedResponse
+            ? JSON.stringify(t.mockFixedResponse, null, 2)
+            : "",
+          mockSimulationPrompt: t.mockSimulationPrompt || "",
+          mockSimulationModel: t.mockSimulationModel || MODELS[0].value,
+        }))
+      );
+    } else {
+      // Reset all state for creating a new agent
+      setName("");
+      setDescription("");
+      setModel(MODELS[0].value);
+      setInstruction("");
+      setSelectedSubagentIds([]);
+      setSelectedSkillIds([]);
+      setSelectedToolIds([]);
+      setSelectedMockToolIds([]);
+      setBuilderTools([]);
     }
-  }, [agent]);
+  }, [agent, availableMockTools]);
 
   const saveMockTools = async (): Promise<string[]> => {
     setIsSavingMockTools(true);
@@ -127,25 +182,16 @@ export function AgentForm({
             tool.mockMode === "llm_simulated" ? tool.mockSimulationModel : null,
         };
 
-        if (tool.id) {
-          const res = await fetch(`/api/mock-tools/${tool.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            savedIds.push(data.data.toolId);
-          }
-        } else {
-          const res = await fetch("/api/mock-tools", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            savedIds.push(data.data.toolId);
+        const res = await fetch("/api/mock-tools", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const returnedToolId = data.data.toolId;
+          if (!savedIds.includes(returnedToolId)) {
+            savedIds.push(returnedToolId);
           }
         }
       }
