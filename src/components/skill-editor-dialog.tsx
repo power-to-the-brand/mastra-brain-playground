@@ -15,6 +15,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import matter from "gray-matter";
 import { cn } from "@/lib/utils";
+import { TreeNode } from "@/lib/s3";
 
 interface Skill {
   id?: string;
@@ -56,6 +57,8 @@ export function SkillEditorDialog({
 }: SkillEditorDialogProps) {
   const [content, setContent] = React.useState("");
   const [previewMode, setPreviewMode] = React.useState(false);
+  const [siblingFiles, setSiblingFiles] = React.useState<TreeNode[]>([]);
+  const folderPrefix = skill?.s3Location?.replace(/SKILL\.md$/, '');
 
   React.useEffect(() => {
     if (open) {
@@ -63,7 +66,7 @@ export function SkillEditorDialog({
         // If we have a skill, we need to reconstruct the markdown with frontmatter
         // if it doesn't already have it (though it should if we're moving to this pattern)
         const hasFrontmatter = skill.content?.trim().startsWith("---");
-        
+
         if (hasFrontmatter) {
           setContent(skill.content || "");
         } else {
@@ -81,6 +84,21 @@ export function SkillEditorDialog({
       }
     }
   }, [skill, open]);
+
+  React.useEffect(() => {
+    if (open && folderPrefix) {
+      fetch(`/api/s3/tree?prefix=${encodeURIComponent(folderPrefix)}`)
+        .then(res => res.json())
+        .then(data => {
+          const siblings = [
+            ...(data.folders || []),
+            ...(data.files || []).filter((f: TreeNode) => f.name !== 'SKILL.md'),
+          ];
+          setSiblingFiles(siblings);
+        })
+        .catch(err => console.error('Failed to load sibling files:', err));
+    }
+  }, [open, folderPrefix]);
 
   const handleSave = async () => {
     try {
@@ -127,31 +145,46 @@ export function SkillEditorDialog({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 flex flex-col overflow-hidden bg-background">
-          <div className="flex items-center gap-2 px-8 py-3 bg-muted/10 border-b text-[11px] text-muted-foreground">
-            <Info size={12} className="text-primary/60" />
-            <span>Metadata (name, description, tags) is automatically extracted from the YAML frontmatter block at the top.</span>
-          </div>
-          
-          <div className="flex-1 overflow-hidden relative">
-            {previewMode ? (
-              <div className="h-full overflow-y-auto p-10 bg-card/30">
-                <div className="max-w-5xl mx-auto prose prose-stone dark:prose-invert prose-sm">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {matter(content).content || "*No content yet*"}
-                  </ReactMarkdown>
+        <div className="flex-1 flex overflow-hidden bg-background">
+          {folderPrefix && (
+            <div className="w-48 border-r border-border/50 p-3 overflow-y-auto bg-muted/10">
+              <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Files</div>
+              {siblingFiles.map((file) => (
+                <div key={file.prefix} className="text-sm py-1.5 px-2 rounded hover:bg-accent cursor-pointer truncate">
+                  {file.name}
                 </div>
-              </div>
-            ) : (
-              <div className="h-full flex flex-col">
-                <Textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="flex-1 w-full p-8 font-mono text-sm resize-none border-none focus-visible:ring-0 bg-transparent leading-relaxed"
-                  placeholder={DEFAULT_TEMPLATE}
-                />
-              </div>
-            )}
+              ))}
+              {siblingFiles.length === 0 && (
+                <div className="text-xs text-muted-foreground px-2">No other files</div>
+              )}
+            </div>
+          )}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex items-center gap-2 px-8 py-3 bg-muted/10 border-b text-[11px] text-muted-foreground">
+              <Info size={12} className="text-primary/60" />
+              <span>Metadata (name, description, tags) is automatically extracted from the YAML frontmatter block at the top.</span>
+            </div>
+
+            <div className="flex-1 overflow-hidden relative">
+              {previewMode ? (
+                <div className="h-full overflow-y-auto p-10 bg-card/30">
+                  <div className="max-w-5xl mx-auto prose prose-stone dark:prose-invert prose-sm">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {matter(content).content || "*No content yet*"}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-full flex flex-col">
+                  <Textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    className="flex-1 w-full p-8 font-mono text-sm resize-none border-none focus-visible:ring-0 bg-transparent leading-relaxed"
+                    placeholder={DEFAULT_TEMPLATE}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
