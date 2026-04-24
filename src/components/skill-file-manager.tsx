@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { FileTree } from './file-tree';
+import { FileTree, DroppedFile } from './file-tree';
 import { SkillImportPreview, DetectedSkill } from './skill-import-preview';
 import matter from 'gray-matter';
 
@@ -22,18 +22,14 @@ export function SkillFileManager({ children }: SkillFileManagerProps) {
   const [pendingFiles, setPendingFiles] = useState<FileEntry[]>([]);
 
   const handleDrop = useCallback(
-    async (files: FileList | null, targetPrefix: string) => {
-      if (!files || files.length === 0) return;
+    async (files: DroppedFile[], targetPrefix: string) => {
+      if (files.length === 0) return;
 
-      // Read files using DataTransfer.items for folder structure
       const entries: FileEntry[] = [];
       const detected: DetectedSkill[] = [];
 
-      // Use webkitGetAsEntry for folder structure if available
-      // Fallback: just read all files
-      for (const file of Array.from(files)) {
+      for (const { file, path } of files) {
         const content = await file.text();
-        const path = (file as any).webkitRelativePath || file.name;
         entries.push({ path, content, encoding: 'utf8' });
 
         if (path.endsWith('/SKILL.md') || path === 'SKILL.md') {

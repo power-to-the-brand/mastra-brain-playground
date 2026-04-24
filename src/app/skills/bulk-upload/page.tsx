@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { FileTree } from '@/components/file-tree';
+import { FileTree, DroppedFile } from '@/components/file-tree';
 import { SkillImportPreview, DetectedSkill } from '@/components/skill-import-preview';
 import matter from 'gray-matter';
 import { Upload, ArrowLeft } from 'lucide-react';
@@ -14,20 +14,60 @@ interface FileEntry {
   encoding: 'utf8' | 'base64';
 }
 
+async function readEntriesRecursively(reader: any): Promise<any[]> {
+  const entries: any[] = [];
+  let readMore = true;
+  while (readMore) {
+    const batch = await new Promise<any[]>((resolve) => reader.readEntries(resolve));
+    if (batch.length === 0) {
+      readMore = false;
+    } else {
+      entries.push(...batch);
+    }
+  }
+  return entries;
+}
+
+async function collectFilesFromDrop(items: DataTransferItemList): Promise<DroppedFile[]> {
+  const result: DroppedFile[] = [];
+
+  async function readEntry(entry: any, path = ''): Promise<void> {
+    if (entry.isFile) {
+      const file = await new Promise<File>((resolve) => entry.file(resolve));
+      result.push({ file, path: path + file.name });
+    } else if (entry.isDirectory) {
+      const dirReader = entry.createReader();
+      const entries = await readEntriesRecursively(dirReader);
+      for (const child of entries) {
+        await readEntry(child, path + entry.name + '/');
+      }
+    }
+  }
+
+  for (const item of Array.from(items)) {
+    const entry = (item as any).webkitGetAsEntry?.();
+    if (entry) {
+      await readEntry(entry);
+    }
+  }
+
+  return result;
+}
+
 export default function BulkUploadPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [detectedSkills, setDetectedSkills] = useState<DetectedSkill[]>([]);
   const [importTargetPrefix, setImportTargetPrefix] = useState('');
   const [pendingFiles, setPendingFiles] = useState<FileEntry[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleDrop = useCallback(async (files: FileList | null, targetPrefix: string) => {
-    if (!files || files.length === 0) return;
+  const processDroppedFiles = useCallback(async (files: DroppedFile[], targetPrefix: string) => {
+    if (files.length === 0) return;
     const entries: FileEntry[] = [];
     const detected: DetectedSkill[] = [];
 
-    for (const file of Array.from(files)) {
+    for (const { file, path } of files) {
       const content = await file.text();
-      const path = (file as any).webkitRelativePath || file.name;
       entries.push({ path, content, encoding: 'utf8' });
 
       if (path.endsWith('/SKILL.md') || path === 'SKILL.md') {
@@ -47,6 +87,31 @@ export default function BulkUploadPage() {
     setDetectedSkills(detected);
     setImportTargetPrefix(targetPrefix);
     setImportOpen(true);
+  }, []);
+
+  const handleTreeDrop = useCallback(async (files: DroppedFile[], targetPrefix: string) => {
+    await processDroppedFiles(files, targetPrefix);
+  }, [processDroppedFiles]);
+
+  const handleZoneDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (!e.dataTransfer.items || e.dataTransfer.items.length === 0) return;
+    const files = await collectFilesFromDrop(e.dataTransfer.items);
+    if (files.length > 0) {
+      await processDroppedFiles(files, 'playground/skills/');
+    }
+  }, [processDroppedFiles]);
+
+  const handleZoneDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    setIsDragOver(true);
+  }, []);
+
+  const handleZoneDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
   }, []);
 
   const handleImportConfirm = useCallback(async (_skills: DetectedSkill[]) => {
@@ -87,13 +152,20 @@ export default function BulkUploadPage() {
 
         <div className="flex h-[calc(100vh-200px)] gap-4">
           <div className="w-64 shrink-0">
-            <FileTree onDropFiles={handleDrop} />
+            <FileTree onDropFiles={handleTreeDrop} />
           </div>
-          <div className="flex-1 border rounded-lg p-6 bg-card/50 flex flex-col items-center justify-center text-center">
+          <div
+            className={`flex-1 border rounded-lg p-6 flex flex-col items-center justify-center text-center transition-colors ${
+              isDragOver ? 'bg-primary/5 border-primary/30' : 'bg-card/50'
+            }`}
+            onDragOver={handleZoneDragOver}
+            onDragLeave={handleZoneDragLeave}
+            onDrop={handleZoneDrop}
+          >
             <Upload className="w-12 h-12 text-muted-foreground mb-4" />
             <h2 className="text-lg font-medium mb-2">Drop a folder here</h2>
             <p className="text-sm text-muted-foreground max-w-md">
-              Drag and drop a folder from your computer onto the file tree on the left.
+              Drag and drop a folder from your computer onto the file tree on the left or directly here.
               Any folder containing a <code className="bg-muted px-1 rounded">SKILL.md</code> file
               will be detected as a skill.
             </p>

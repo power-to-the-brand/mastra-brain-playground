@@ -3,23 +3,75 @@
 import { useState, useCallback, useEffect } from 'react';
 import { FileTreeNode } from './file-tree-node';
 import { TreeNode } from '@/lib/s3';
+import { FolderPlus, Loader2, AlertCircle } from 'lucide-react';
+
+export interface DroppedFile {
+  file: File;
+  path: string;
+}
 
 interface FileTreeProps {
   rootPrefix?: string;
   onSelectSkill?: (prefix: string) => void;
-  onDropFiles?: (files: FileList | null, targetPrefix: string) => void;
+  onDropFiles?: (files: DroppedFile[], targetPrefix: string) => void;
 }
 
-export function FileTree({ rootPrefix = 'playground/files/', onSelectSkill, onDropFiles }: FileTreeProps) {
+async function readEntriesRecursively(reader: any): Promise<any[]> {
+  const entries: any[] = [];
+  let readMore = true;
+  while (readMore) {
+    const batch = await new Promise<any[]>((resolve) => reader.readEntries(resolve));
+    if (batch.length === 0) {
+      readMore = false;
+    } else {
+      entries.push(...batch);
+    }
+  }
+  return entries;
+}
+
+async function collectFilesFromDrop(items: DataTransferItemList): Promise<DroppedFile[]> {
+  const result: DroppedFile[] = [];
+
+  async function readEntry(entry: any, path = ''): Promise<void> {
+    if (entry.isFile) {
+      const file = await new Promise<File>((resolve) => entry.file(resolve));
+      result.push({ file, path: path + file.name });
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      const entries = await readEntriesRecursively(reader);
+      for (const child of entries) {
+        await readEntry(child, path + entry.name + '/');
+      }
+    }
+  }
+
+  for (const item of Array.from(items)) {
+    const entry = (item as any).webkitGetAsEntry?.();
+    if (entry) {
+      await readEntry(entry);
+    }
+  }
+
+  return result;
+}
+
+export function FileTree({ rootPrefix = 'playground/', onSelectSkill, onDropFiles }: FileTreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set([rootPrefix]));
   const [treeData, setTreeData] = useState<Record<string, { folders: TreeNode[]; files: TreeNode[]; hasSkill?: boolean }>>({});
   const [loading, setLoading] = useState<Set<string>>(new Set());
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: TreeNode } | null>(null);
 
   const fetchTree = useCallback(async (prefix: string) => {
     setLoading((prev) => new Set(prev).add(prefix));
+    setFetchError(null);
     try {
       const res = await fetch(`/api/s3/tree?prefix=${encodeURIComponent(prefix)}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
       const data = await res.json();
 
       const hasSkill = data.files.some((f: TreeNode) => f.name === 'SKILL.md');
@@ -43,8 +95,9 @@ export function FileTree({ rootPrefix = 'playground/files/', onSelectSkill, onDr
           });
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch tree:', err);
+      setFetchError(err.message || 'Failed to load file tree');
     } finally {
       setLoading((prev) => {
         const next = new Set(prev);
@@ -73,10 +126,12 @@ export function FileTree({ rootPrefix = 'playground/files/', onSelectSkill, onDr
     });
   }, [treeData, fetchTree]);
 
-  const handleDrop = useCallback((e: React.DragEvent, prefix: string) => {
+  const handleDrop = useCallback(async (e: React.DragEvent, prefix: string) => {
     e.preventDefault();
-    if (onDropFiles) {
-      onDropFiles(e.dataTransfer.files, prefix);
+    if (!onDropFiles || !e.dataTransfer.items || e.dataTransfer.items.length === 0) return;
+    const files = await collectFilesFromDrop(e.dataTransfer.items);
+    if (files.length > 0) {
+      onDropFiles(files, prefix);
     }
   }, [onDropFiles]);
 
@@ -107,10 +162,42 @@ export function FileTree({ rootPrefix = 'playground/files/', onSelectSkill, onDr
   }, [fetchTree, rootPrefix]);
 
   const rootData = treeData[rootPrefix];
+  const isRootLoading = loading.has(rootPrefix);
+  const hasContent = rootData && (rootData.folders.length > 0 || rootData.files.length > 0);
 
   return (
-    <div className="border rounded-md p-2 h-full overflow-auto bg-background" onDragOver={(e) => e.preventDefault()}>
-      <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Files</div>
+    <div className="border rounded-md p-2 h-full overflow-auto bg-background flex flex-col" onDragOver={(e) => e.preventDefault()}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Files</div>
+        <button
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          title="New Folder"
+          onClick={() => {
+            const name = prompt('Folder name:');
+            if (name) createFolder(rootPrefix, name);
+          }}
+        >
+          <FolderPlus size={14} />
+        </button>
+      </div>
+
+      {isRootLoading && !rootData && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          Loading...
+        </div>
+      )}
+
+      {fetchError && (
+        <div className="flex items-start gap-2 text-xs text-destructive bg-destructive/10 rounded-md p-2 mb-2">
+          <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <div className="font-medium">Failed to load files</div>
+            <div className="opacity-80">{fetchError}</div>
+          </div>
+        </div>
+      )}
+
       {rootData?.folders.map((folder) => (
         <FileTreeNode
           key={folder.prefix}
@@ -120,20 +207,36 @@ export function FileTree({ rootPrefix = 'playground/files/', onSelectSkill, onDr
           onSelect={(node) => node.hasSkill && onSelectSkill?.(node.prefix)}
           onContextMenu={handleContextMenu}
           onDrop={handleDrop}
-          isExpanded={expanded.has(folder.prefix)}
-          isLoading={loading.has(folder.prefix)}
-          childrenNodes={[
-            ...(treeData[folder.prefix]?.folders || []),
-            ...(treeData[folder.prefix]?.files || []),
-          ]}
+          expanded={expanded}
+          loading={loading}
+          treeData={treeData}
         />
       ))}
       {rootData?.files.map((file) => (
-        <FileTreeNode key={file.prefix} node={file} level={0} onToggle={toggle} onSelect={(node) => node.hasSkill && onSelectSkill?.(node.prefix)} onContextMenu={handleContextMenu} onDrop={handleDrop} />
+        <FileTreeNode key={file.prefix} node={file} level={0} onToggle={toggle} onSelect={(node) => node.hasSkill && onSelectSkill?.(node.prefix)} onContextMenu={handleContextMenu} onDrop={handleDrop} expanded={expanded} loading={loading} treeData={treeData} />
       ))}
+
+      {!isRootLoading && !fetchError && !hasContent && (
+        <div className="text-center py-8 px-2">
+          <div className="text-xs text-muted-foreground mb-3">
+            No folders yet.
+          </div>
+          <button
+            className="text-xs text-primary hover:underline flex items-center gap-1 mx-auto"
+            onClick={() => {
+              const name = prompt('Folder name:');
+              if (name) createFolder(rootPrefix, name);
+            }}
+          >
+            <FolderPlus size={12} />
+            Create your first folder
+          </button>
+        </div>
+      )}
+
       {contextMenu && (
         <div
-          className="fixed z-50 bg-popover border rounded-md shadow-md py-1 min-w-[160px]"
+          className="fixed z-50 bg-popover border rounded-md shadow-md py-1 min-w-40"
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onMouseLeave={() => setContextMenu(null)}
         >
