@@ -10,7 +10,7 @@ const s3Client = new S3Client({
   })
 });
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET || "mastra-brain-agent-skills";
+export const BUCKET_NAME = process.env.AWS_S3_BUCKET || "mastra-brain-agent-skills";
 
 function buildS3Uri(key: string): string {
   return `s3://${BUCKET_NAME}/${key}`;

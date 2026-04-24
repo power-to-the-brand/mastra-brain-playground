@@ -3,7 +3,17 @@
 import { useState, useCallback, useEffect } from 'react';
 import { FileTreeNode } from './file-tree-node';
 import { TreeNode } from '@/lib/s3';
-import { FolderPlus, Loader2, AlertCircle } from 'lucide-react';
+import { FolderPlus, Loader2, AlertCircle, Trash2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export interface DroppedFile {
   file: File;
@@ -62,6 +72,11 @@ export function FileTree({ rootPrefix = 'playground/', onSelectSkill, onDropFile
   const [loading, setLoading] = useState<Set<string>>(new Set());
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: TreeNode } | null>(null);
+  const [newFolderOpen, setNewFolderOpen] = useState(false);
+  const [newFolderPrefix, setNewFolderPrefix] = useState('');
+  const [newFolderName, setNewFolderName] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<TreeNode | null>(null);
 
   const fetchTree = useCallback(async (prefix: string) => {
     setLoading((prev) => new Set(prev).add(prefix));
@@ -161,6 +176,32 @@ export function FileTree({ rootPrefix = 'playground/', onSelectSkill, onDropFile
     await fetchTree(parentPrefix || rootPrefix);
   }, [fetchTree, rootPrefix]);
 
+  const openNewFolderDialog = useCallback((prefix: string) => {
+    setNewFolderPrefix(prefix);
+    setNewFolderName('');
+    setNewFolderOpen(true);
+  }, []);
+
+  const handleCreateFolder = useCallback(async () => {
+    if (!newFolderName.trim()) return;
+    await createFolder(newFolderPrefix, newFolderName.trim());
+    setNewFolderOpen(false);
+    setNewFolderName('');
+  }, [newFolderPrefix, newFolderName, createFolder]);
+
+  const openDeleteDialog = useCallback((node: TreeNode) => {
+    setDeleteTarget(node);
+    setDeleteDialogOpen(true);
+    setContextMenu(null);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteTarget) return;
+    await deleteNode(deleteTarget);
+    setDeleteDialogOpen(false);
+    setDeleteTarget(null);
+  }, [deleteTarget, deleteNode]);
+
   const rootData = treeData[rootPrefix];
   const isRootLoading = loading.has(rootPrefix);
   const hasContent = rootData && (rootData.folders.length > 0 || rootData.files.length > 0);
@@ -172,10 +213,7 @@ export function FileTree({ rootPrefix = 'playground/', onSelectSkill, onDropFile
         <button
           className="text-muted-foreground hover:text-foreground transition-colors"
           title="New Folder"
-          onClick={() => {
-            const name = prompt('Folder name:');
-            if (name) createFolder(rootPrefix, name);
-          }}
+          onClick={() => openNewFolderDialog(rootPrefix)}
         >
           <FolderPlus size={14} />
         </button>
@@ -223,10 +261,7 @@ export function FileTree({ rootPrefix = 'playground/', onSelectSkill, onDropFile
           </div>
           <button
             className="text-xs text-primary hover:underline flex items-center gap-1 mx-auto"
-            onClick={() => {
-              const name = prompt('Folder name:');
-              if (name) createFolder(rootPrefix, name);
-            }}
+            onClick={() => openNewFolderDialog(rootPrefix)}
           >
             <FolderPlus size={12} />
             Create your first folder
@@ -244,8 +279,7 @@ export function FileTree({ rootPrefix = 'playground/', onSelectSkill, onDropFile
             <button
               className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
               onClick={() => {
-                const name = prompt('Folder name:');
-                if (name) createFolder(contextMenu.node.prefix, name);
+                openNewFolderDialog(contextMenu.node.prefix);
                 setContextMenu(null);
               }}
             >
@@ -255,14 +289,69 @@ export function FileTree({ rootPrefix = 'playground/', onSelectSkill, onDropFile
           <button
             className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent text-destructive"
             onClick={() => {
-              if (confirm(`Delete ${contextMenu.node.name}?`)) deleteNode(contextMenu.node);
-              setContextMenu(null);
+              openDeleteDialog(contextMenu.node);
             }}
           >
             Delete
           </button>
         </div>
       )}
+
+      {/* New Folder Dialog */}
+      <Dialog open={newFolderOpen} onOpenChange={setNewFolderOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>New Folder</DialogTitle>
+            <DialogDescription>
+              Create a new folder under <code className="bg-muted px-1 rounded">{newFolderPrefix}</code>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              placeholder="Folder name"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreateFolder();
+              }}
+              autoFocus
+            />
+          </div>
+          <DialogFooter showCloseButton>
+            <Button variant="outline" onClick={() => setNewFolderOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {deleteTarget?.type === 'folder' ? 'Delete Folder' : 'Delete File'}
+            </DialogTitle>
+            <DialogDescription>
+              {deleteTarget?.type === 'folder'
+                ? 'This folder and all its contents will be permanently deleted.'
+                : 'This file will be permanently deleted.'}
+              {(deleteTarget?.hasSkill || deleteTarget?.name === 'SKILL.md') && (
+                <>
+                  <br /><br />
+                  This will also remove the associated skill record(s) from the database.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter showCloseButton>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
