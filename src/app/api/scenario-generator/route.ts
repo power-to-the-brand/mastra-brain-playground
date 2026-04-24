@@ -88,12 +88,12 @@ export async function POST(request: NextRequest) {
 
     if (
       !parsed.pastSupplierConversation ||
-      !Array.isArray(parsed.pastSupplierConversation)
+      typeof parsed.pastSupplierConversation !== "object"
     ) {
       return NextResponse.json(
         {
           error:
-            "Unexpected response from Mastra server: missing pastSupplierConversation array",
+            "Unexpected response from Mastra server: missing pastSupplierConversation object",
         },
         { status: 502 },
       );

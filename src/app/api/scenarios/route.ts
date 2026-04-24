@@ -113,12 +113,12 @@ export async function POST(request: NextRequest) {
 
     if (
       !body.pastSupplierConversation ||
-      !Array.isArray(body.pastSupplierConversation)
+      typeof body.pastSupplierConversation !== "object"
     ) {
       return NextResponse.json(
         {
           error:
-            "Missing or invalid pastSupplierConversation field. Expected an array.",
+            "Missing or invalid pastSupplierConversation field. Expected an object.",
         },
         { status: 400 },
       );
@@ -188,12 +188,12 @@ export async function PUT(request: NextRequest) {
 
     if (
       !body.pastSupplierConversation ||
-      !Array.isArray(body.pastSupplierConversation)
+      typeof body.pastSupplierConversation !== "object"
     ) {
       return NextResponse.json(
         {
           error:
-            "Missing or invalid pastSupplierConversation field. Expected an array.",
+            "Missing or invalid pastSupplierConversation field. Expected an object.",
         },
         { status: 400 },
       );
