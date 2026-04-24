@@ -148,9 +148,9 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
                   : undefined
               }
               initialMessages={(() => {
-                const mapped =
+                const mapped: any[] =
                   run.messages && run.messages.length > 0
-                    ? run.messages.map((m: any, idx: number) => {
+                    ? (run.messages as any[]).map((m: any, idx: number) => {
                         // New format: messages stored with full parts (id, role, parts)
                         if (m.parts && Array.isArray(m.parts)) {
                           return {

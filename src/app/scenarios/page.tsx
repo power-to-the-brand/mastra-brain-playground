@@ -38,7 +38,6 @@ interface ScenarioWithMeta extends Scenario {
     content: string;
     image?: string;
   }>;
-  pastSupplierConversation: unknown;
   srData: Array<Record<string, unknown>>;
   messageCount: number;
   supplierMessageCount: number;

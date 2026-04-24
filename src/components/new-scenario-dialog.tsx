@@ -44,7 +44,7 @@ interface ScenarioData {
   name: string;
   conversationMessages: ChatMessage[];
   srData: Array<Record<string, unknown>>;
-  pastSupplierConversation: SupplierConversations | ChatMessage[];
+  pastSupplierConversation: any;
   products?: unknown;
   createdAt?: Date | string;
 }
