@@ -30,6 +30,7 @@ import type { Scenario } from "@/db/schema";
 import { ToastProvider, useToast } from "@/components/ui/toast-provider";
 import { NewScenarioDialog } from "@/components/new-scenario-dialog";
 import { ScenarioResultsDialog } from "@/components/scenario-results-dialog";
+import { normalizeSupplierConversations, countSupplierMessages } from "@/lib/supplier-conversations";
 
 interface ScenarioWithMeta extends Scenario {
   conversationMessages: Array<{
@@ -37,11 +38,7 @@ interface ScenarioWithMeta extends Scenario {
     content: string;
     image?: string;
   }>;
-  pastSupplierConversation: Array<{
-    role: "user" | "assistant";
-    content: string;
-    image?: string;
-  }>;
+  pastSupplierConversation: unknown;
   srData: Array<Record<string, unknown>>;
   messageCount: number;
   supplierMessageCount: number;
@@ -87,7 +84,9 @@ function ScenariosPageContent() {
         data.data.map((s: ScenarioWithMeta) => ({
           ...s,
           messageCount: s.conversationMessages?.length || 0,
-          supplierMessageCount: s.pastSupplierConversation?.length || 0,
+          supplierMessageCount: countSupplierMessages(
+            normalizeSupplierConversations(s.pastSupplierConversation),
+          ),
         })),
       );
       setTotalPages(data.meta.totalPages);

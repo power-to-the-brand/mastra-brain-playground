@@ -11,6 +11,10 @@ import {
 import { Sidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, QuotationData, SRData } from "@/types/scenario";
+import {
+  normalizeSupplierConversations,
+  type SupplierConversations,
+} from "@/lib/supplier-conversations";
 import { ScenarioInput } from "@/components/scenario-input";
 import { GeneratedResults } from "@/components/generated-results";
 import { ToastProvider } from "@/components/ui/toast-provider";
@@ -24,7 +28,7 @@ export default function ScenarioBuilderPage() {
     conversationMessages: ChatMessage[];
     srData: SRData[];
     products: QuotationData[];
-    pastSupplierConversation: ChatMessage[];
+    pastSupplierConversation: SupplierConversations | ChatMessage[];
   } | null>(null);
   const [processingError, setProcessingError] = useState<string | null>(null);
 
@@ -33,17 +37,27 @@ export default function ScenarioBuilderPage() {
     const loadFromSessionStorage = () => {
       const conversation = sessionStorage.getItem("scenario_conversation");
       const srData = sessionStorage.getItem("scenario_sr_data");
-      const supplierChat = sessionStorage.getItem("scenario_supplier_chat");
+      const supplierChatRaw = sessionStorage.getItem("scenario_supplier_chat");
       const products = sessionStorage.getItem("scenario_products");
 
-      if (conversation || srData || supplierChat || products) {
+      let pastSupplierConversation: SupplierConversations | ChatMessage[] = [];
+      if (supplierChatRaw) {
+        try {
+          const parsed = JSON.parse(supplierChatRaw);
+          pastSupplierConversation = normalizeSupplierConversations(parsed);
+        } catch {
+          pastSupplierConversation = {};
+        }
+      }
+
+      if (conversation || srData || supplierChatRaw || products) {
         // Data was loaded from sessionStorage - now clear it and load into playground
         // This is the "one-time load" behavior
         setScenarioResults({
           conversationMessages: conversation ? JSON.parse(conversation) : [],
           srData: srData ? JSON.parse(srData) : [],
           products: products ? JSON.parse(products) : [],
-          pastSupplierConversation: supplierChat ? JSON.parse(supplierChat) : [],
+          pastSupplierConversation,
         });
         sessionStorage.removeItem("scenario_conversation");
         sessionStorage.removeItem("scenario_sr_data");
@@ -101,7 +115,7 @@ export default function ScenarioBuilderPage() {
     );
     sessionStorage.setItem(
       "scenario_supplier_chat",
-      JSON.stringify(scenarioResults.pastSupplierConversation),
+      JSON.stringify(normalizeSupplierConversations(scenarioResults.pastSupplierConversation)),
     );
     sessionStorage.setItem(
       "scenario_products",

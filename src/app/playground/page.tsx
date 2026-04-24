@@ -25,6 +25,11 @@ import {
 import { Sparkles, Loader2, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, SRData } from "@/types/scenario";
+import {
+  normalizeSupplierConversations,
+  flattenSupplierConversations,
+  type SupplierConversations,
+} from "@/lib/supplier-conversations";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, UIMessage } from "ai";
@@ -169,17 +174,16 @@ export default function PlaygroundPage() {
 
       if (supplierChat) {
         try {
-          const messages: ChatMessage[] = JSON.parse(supplierChat);
+          const parsed = JSON.parse(supplierChat);
+          const normalized = normalizeSupplierConversations(parsed);
+          const flattened = flattenSupplierConversations(normalized);
           setPastSupplierConversation(
-            messagesToLineFormat(messages, {
-              userRolePrefix: "Sourcy Team",
-              botRolePrefix: "Supplier",
-            }),
+            flattened
+              .map((m) => `[${m.role === "user" ? "Supplier" : "Bot"}]: ${m.content}`)
+              .join("\n"),
           );
         } catch {
-          console.error(
-            "Failed to parse scenario_supplier_chat from sessionStorage",
-          );
+          setPastSupplierConversation("");
         }
       }
 
