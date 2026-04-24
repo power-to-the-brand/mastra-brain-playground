@@ -6,6 +6,11 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { ChatMessage, QuotationData, SRData, SaveScenarioRequest, SaveScenarioResponse } from "@/types/scenario";
+import {
+  normalizeSupplierConversations,
+  countSupplierMessages,
+  type SupplierConversations,
+} from "@/lib/supplier-conversations";
 import { useToast } from "@/components/ui/toast-provider";
 
 interface GeneratedResultsProps {
@@ -13,7 +18,7 @@ interface GeneratedResultsProps {
   conversationMessages: ChatMessage[];
   srData: SRData[];
   products?: QuotationData[];
-  pastSupplierConversation: ChatMessage[];
+  pastSupplierConversation: SupplierConversations | ChatMessage[];
   onReset: () => void;
   onLoadIntoPlayground?: () => void;
   isLoading?: boolean;
@@ -24,7 +29,7 @@ interface SaveScenarioButtonProps {
   conversationMessages: ChatMessage[];
   srData: SRData[];
   products?: QuotationData[];
-  pastSupplierConversation: ChatMessage[];
+  pastSupplierConversation: SupplierConversations | ChatMessage[];
   onSaveSuccess?: (scenario: SaveScenarioResponse["data"]) => void;
   isLoading?: boolean;
 }
@@ -172,6 +177,10 @@ export function GeneratedResults({
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
+
+  const supplierConversations = normalizeSupplierConversations(pastSupplierConversation);
+  const supplierNames = Object.keys(supplierConversations);
+  const totalSupplierMessages = countSupplierMessages(supplierConversations);
 
   const formatJson = (obj: unknown) => {
     return JSON.stringify(obj, null, 2);
@@ -602,10 +611,10 @@ export function GeneratedResults({
             </div>
             <div className="text-left">
               <span className="block font-serif font-bold text-foreground">
-                Past Supplier Conversation
+                Past Supplier Conversations
               </span>
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-                {pastSupplierConversation.length} messages
+                {supplierNames.length} supplier{supplierNames.length !== 1 ? "s" : ""} · {totalSupplierMessages} messages
               </span>
             </div>
           </div>
@@ -616,40 +625,49 @@ export function GeneratedResults({
           )}
         </button>
 
-        {expandedSections.supplierChat && pastSupplierConversation.length > 0 && (
+        {expandedSections.supplierChat && totalSupplierMessages > 0 && (
           <div className="border-t border-border p-6 bg-muted/5">
-            <div className="flex flex-col gap-5">
-              {pastSupplierConversation.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={cn(
-                    "flex gap-4",
-                    msg.role === "user" ? "flex-row-reverse" : "flex-row",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full shadow-sm transition-colors",
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    {msg.role === "user" ? (
-                      <User size={16} strokeWidth={2.5} />
-                    ) : (
-                      <Bot size={16} strokeWidth={2.5} />
-                    )}
-                  </div>
-                  <div
-                    className={cn(
-                      "max-w-[85%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed shadow-sm transition-all duration-300",
-                      msg.role === "user"
-                        ? "rounded-tr-none bg-primary text-primary-foreground"
-                        : "rounded-tl-none bg-card border border-border text-foreground",
-                    )}
-                  >
-                    {msg.content}
+            <div className="flex flex-col gap-6">
+              {supplierNames.map((supplierName) => (
+                <div key={supplierName} className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                    {supplierName}
+                  </h4>
+                  <div className="flex flex-col gap-5">
+                    {supplierConversations[supplierName].map((msg, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "flex gap-4",
+                          msg.role === "user" ? "flex-row-reverse" : "flex-row",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full shadow-sm transition-colors",
+                            msg.role === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {msg.role === "user" ? (
+                            <User size={16} strokeWidth={2.5} />
+                          ) : (
+                            <Bot size={16} strokeWidth={2.5} />
+                          )}
+                        </div>
+                        <div
+                          className={cn(
+                            "max-w-[85%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed shadow-sm transition-all duration-300",
+                            msg.role === "user"
+                              ? "rounded-tr-none bg-primary text-primary-foreground"
+                              : "rounded-tl-none bg-card border border-border text-foreground",
+                          )}
+                        >
+                          {msg.content}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -660,7 +678,14 @@ export function GeneratedResults({
                 variant="ghost"
                 onClick={() =>
                   copyToClipboard(
-                    pastSupplierConversation.map((m) => `${m.role}: ${m.content}`).join("\n"),
+                    supplierNames
+                      .map((name) =>
+                        [
+                          `--- ${name} ---`,
+                          ...supplierConversations[name].map((m) => `${m.role}: ${m.content}`),
+                        ].join("\n"),
+                      )
+                      .join("\n"),
                     "supplierChat",
                   )
                 }

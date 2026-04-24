@@ -31,6 +31,11 @@ import {
   CollapsibleContent,
 } from "@/components/ui/collapsible";
 import type { ChatMessage } from "@/types/scenario";
+import {
+  normalizeSupplierConversations,
+  countSupplierMessages,
+  type SupplierConversations,
+} from "@/lib/supplier-conversations";
 
 interface ScenarioDetailDialogProps {
   open: boolean;
@@ -40,7 +45,7 @@ interface ScenarioDetailDialogProps {
     name: string;
     conversationMessages: ChatMessage[];
     srData: Array<Record<string, unknown>>;
-    pastSupplierConversation: ChatMessage[];
+    pastSupplierConversation: SupplierConversations | ChatMessage[];
     createdAt: Date | string;
   } | null;
   onUpdateOnly: (scenario: {
@@ -48,14 +53,14 @@ interface ScenarioDetailDialogProps {
     name: string;
     conversationMessages: ChatMessage[];
     srData: Array<Record<string, unknown>>;
-    pastSupplierConversation: ChatMessage[];
+    pastSupplierConversation: SupplierConversations | ChatMessage[];
   }) => void;
   onUpdateAndLoad: (scenario: {
     id: string;
     name: string;
     conversationMessages: ChatMessage[];
     srData: Array<Record<string, unknown>>;
-    pastSupplierConversation: ChatMessage[];
+    pastSupplierConversation: SupplierConversations | ChatMessage[];
   }) => void;
   isUpdating?: boolean;
 }
@@ -94,6 +99,11 @@ export function ScenarioDetailDialog({
     setLocalScenario(scenario);
   }, [scenario]);
 
+  const supplierConversations = React.useMemo(
+    () => normalizeSupplierConversations(localScenario?.pastSupplierConversation),
+    [localScenario?.pastSupplierConversation],
+  );
+
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
@@ -126,7 +136,9 @@ export function ScenarioDetailDialog({
   };
 
   const startEditingMessage = (section: MessageSection, index: number) => {
-    const messages = section === "conversation" ? localScenario?.conversationMessages : localScenario?.pastSupplierConversation;
+    const messages = section === "conversation"
+      ? localScenario?.conversationMessages
+      : (localScenario?.pastSupplierConversation as ChatMessage[] | undefined);
     if (messages && messages[index]) {
       setEditingMessage({ section, index, content: messages[index].content });
     }
@@ -135,7 +147,10 @@ export function ScenarioDetailDialog({
   const saveEditedMessage = () => {
     if (localScenario && editingMessage) {
       const { section, index, content } = editingMessage;
-      const messages = section === "conversation" ? [...localScenario.conversationMessages] : [...localScenario.pastSupplierConversation];
+      const rawMessages = section === "conversation"
+        ? localScenario.conversationMessages
+        : (localScenario.pastSupplierConversation as ChatMessage[]);
+      const messages = [...rawMessages];
       messages[index] = { ...messages[index], content };
       setLocalScenario({
         ...localScenario,
@@ -155,7 +170,7 @@ export function ScenarioDetailDialog({
       const messages = localScenario.conversationMessages.filter((_, i) => i !== index);
       setLocalScenario({ ...localScenario, conversationMessages: messages });
     } else {
-      const messages = localScenario.pastSupplierConversation.filter((_, i) => i !== index);
+      const messages = (localScenario.pastSupplierConversation as ChatMessage[]).filter((_, i) => i !== index);
       setLocalScenario({ ...localScenario, pastSupplierConversation: messages });
     }
   };
@@ -177,7 +192,7 @@ export function ScenarioDetailDialog({
     } else {
       setLocalScenario({
         ...localScenario,
-        pastSupplierConversation: [...localScenario.pastSupplierConversation, newMsg],
+        pastSupplierConversation: [...(localScenario.pastSupplierConversation as ChatMessage[]), newMsg],
       });
     }
     setAddingMessageTo(null);
@@ -517,7 +532,7 @@ export function ScenarioDetailDialog({
                     Past Supplier Conversation
                   </span>
                   <Badge variant="secondary" className="ml-1 text-[10px] font-bold uppercase tracking-wider">
-                    {localScenario.pastSupplierConversation.length} messages
+                    {Object.keys(supplierConversations).length} suppliers · {countSupplierMessages(supplierConversations)} messages
                   </Badge>
                 </div>
                 {expandedSections.supplierChat ? (
@@ -528,74 +543,81 @@ export function ScenarioDetailDialog({
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="border-t border-border p-4 bg-background/50">
-                  {localScenario.pastSupplierConversation.length > 0 ? (
+                  {Object.keys(supplierConversations).length > 0 ? (
                     <>
                       <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-border">
-                        {localScenario.pastSupplierConversation.map((msg, idx) => (
-                          <div
-                            key={idx}
-                            className={cn(
-                              "flex gap-2 w-full",
-                              msg.role === "user" ? "flex-row-reverse" : "flex-row",
-                            )}
-                          >
-                            <div
-                              className={cn(
-                                "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full shadow-sm text-xs transition-colors",
-                                msg.role === "user"
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-muted-foreground",
-                              )}
-                            >
-                              <Play size={10} className={msg.role === "user" ? "rotate-90" : "-rotate-90"} />
-                            </div>
-                            <div className="flex flex-col gap-1 flex-1">
-                              {editingMessage?.section === "supplier" && editingMessage.index === idx ? (
-                                <div className="flex flex-col gap-2 w-full min-w-0 max-w-full">
-                                  <textarea
-                                    value={editingMessage.content}
-                                    onChange={(e) => setEditingMessage({ ...editingMessage, content: e.target.value })}
-                                    className="w-full rounded-xl px-3 py-2 text-xs leading-relaxed border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/40 transition-all resize-none"
-                                    rows={3}
-                                    autoFocus
-                                  />
-                                  <div className="flex gap-1.5 justify-end">
-                                    <Button size="sm" variant="ghost" onClick={cancelEditMessage} className="h-7 px-3 text-xs text-muted-foreground hover:text-foreground">
-                                      Cancel
-                                    </Button>
-                                    <Button size="sm" onClick={saveEditedMessage} className="h-7 px-3 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
-                                      Save
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
+                        {Object.entries(supplierConversations).map(([supplierName, messages]) => (
+                          <div key={supplierName} className="space-y-3">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{supplierName}</h4>
+                            <div className="flex flex-col gap-3">
+                              {messages.map((msg, idx) => (
+                                <div
+                                  key={`${supplierName}-${idx}`}
+                                  className={cn(
+                                    "flex gap-2 w-full",
+                                    msg.role === "user" ? "flex-row-reverse" : "flex-row",
+                                  )}
+                                >
                                   <div
                                     className={cn(
-                                      "rounded-xl px-3 py-2 text-xs leading-relaxed shadow-sm transition-all duration-200",
+                                      "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full shadow-sm text-xs transition-colors",
                                       msg.role === "user"
-                                        ? "rounded-tr-none bg-primary text-primary-foreground"
-                                        : "rounded-tl-none bg-card border border-border text-foreground",
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted text-muted-foreground",
                                     )}
                                   >
-                                    {msg.content}
+                                    <Play size={10} className={msg.role === "user" ? "rotate-90" : "-rotate-90"} />
                                   </div>
-                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button
-                                      onClick={() => startEditingMessage("supplier", idx)}
-                                      className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-all"
-                                    >
-                                      <Edit size={10} />
-                                    </button>
-                                    <button
-                                      onClick={() => deleteMessage("supplier", idx)}
-                                      className="p-1.5 hover:bg-destructive/10 rounded-lg text-muted-foreground hover:text-destructive transition-all"
-                                    >
-                                      <Check size={10} className="text-destructive" />
-                                    </button>
+                                  <div className="flex flex-col gap-1 flex-1">
+                                    {editingMessage?.section === "supplier" && editingMessage.index === idx ? (
+                                      <div className="flex flex-col gap-2 w-full min-w-0 max-w-full">
+                                        <textarea
+                                          value={editingMessage.content}
+                                          onChange={(e) => setEditingMessage({ ...editingMessage, content: e.target.value })}
+                                          className="w-full rounded-xl px-3 py-2 text-xs leading-relaxed border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/40 transition-all resize-none"
+                                          rows={3}
+                                          autoFocus
+                                        />
+                                        <div className="flex gap-1.5 justify-end">
+                                          <Button size="sm" variant="ghost" onClick={cancelEditMessage} className="h-7 px-3 text-xs text-muted-foreground hover:text-foreground">
+                                            Cancel
+                                          </Button>
+                                          <Button size="sm" onClick={saveEditedMessage} className="h-7 px-3 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
+                                            Save
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <div
+                                          className={cn(
+                                            "rounded-xl px-3 py-2 text-xs leading-relaxed shadow-sm transition-all duration-200",
+                                            msg.role === "user"
+                                              ? "rounded-tr-none bg-primary text-primary-foreground"
+                                              : "rounded-tl-none bg-card border border-border text-foreground",
+                                          )}
+                                        >
+                                          {msg.content}
+                                        </div>
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          <button
+                                            onClick={() => startEditingMessage("supplier", idx)}
+                                            className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-all"
+                                          >
+                                            <Edit size={10} />
+                                          </button>
+                                          <button
+                                            onClick={() => deleteMessage("supplier", idx)}
+                                            className="p-1.5 hover:bg-destructive/10 rounded-lg text-muted-foreground hover:text-destructive transition-all"
+                                          >
+                                            <Check size={10} className="text-destructive" />
+                                          </button>
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
-                                </>
-                              )}
+                                </div>
+                              ))}
                             </div>
                           </div>
                         ))}
@@ -653,7 +675,14 @@ export function ScenarioDetailDialog({
                             variant="ghost"
                             onClick={() =>
                               copyToClipboard(
-                                localScenario.pastSupplierConversation.map((m) => `${m.role}: ${m.content}`).join("\n"),
+                                Object.entries(supplierConversations)
+                                  .map(([name, msgs]) =>
+                                    [
+                                      `--- ${name} ---`,
+                                      ...msgs.map((m) => `${m.role}: ${m.content}`),
+                                    ].join("\n"),
+                                  )
+                                  .join("\n"),
                                 "supplierChat",
                               )
                             }

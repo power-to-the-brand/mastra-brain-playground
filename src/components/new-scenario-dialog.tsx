@@ -28,6 +28,10 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@/components/ui/collapsible";
+import {
+  normalizeSupplierConversations,
+  type SupplierConversations,
+} from "@/lib/supplier-conversations";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -40,7 +44,7 @@ interface ScenarioData {
   name: string;
   conversationMessages: ChatMessage[];
   srData: Array<Record<string, unknown>>;
-  pastSupplierConversation: ChatMessage[];
+  pastSupplierConversation: SupplierConversations | ChatMessage[];
   products?: unknown;
   createdAt?: Date | string;
 }
@@ -100,7 +104,7 @@ export function NewScenarioDialog({
         scenario.srData?.length ? JSON.stringify(scenario.srData, null, 2) : "",
       );
       setPastSupplierConversation(
-        scenario.pastSupplierConversation?.length
+        scenario.pastSupplierConversation
           ? JSON.stringify(scenario.pastSupplierConversation, null, 2)
           : "",
       );
@@ -134,11 +138,19 @@ export function NewScenarioDialog({
   const parseJsonField = (
     value: string,
     fieldName: string,
-  ): unknown[] | null => {
-    if (!value.trim()) return [];
+  ): unknown | null => {
+    if (!value.trim()) return fieldName === "pastSupplierConversation" ? {} : [];
     try {
       const parsed = JSON.parse(value);
-      if (!Array.isArray(parsed)) {
+      if (fieldName === "pastSupplierConversation") {
+        if (typeof parsed !== "object" || parsed === null) {
+          setErrors((prev) => ({
+            ...prev,
+            [fieldName]: "Must be a JSON object (e.g., { 'Supplier A': [...] })",
+          }));
+          return null;
+        }
+      } else if (!Array.isArray(parsed)) {
         setErrors((prev) => ({
           ...prev,
           [fieldName]: "Must be a JSON array",
@@ -195,7 +207,7 @@ export function NewScenarioDialog({
         pastSupplierConversation: pastSupplierConversationParsed,
       };
 
-      if (productsParsed.length > 0) {
+      if (Array.isArray(productsParsed) && productsParsed.length > 0) {
         body.products = productsParsed;
       }
 
@@ -303,18 +315,18 @@ export function NewScenarioDialog({
     },
     {
       key: "supplierChat",
-      label: "Past Supplier Conversation",
+      label: "Past Supplier Conversations",
       icon: <MessageCircle size={14} />,
-      placeholder: `[
-  {
-    "role": "user",
-    "content": "Can you provide a quote?"
-  },
-  {
-    "role": "assistant",
-    "content": "Sure, here is the quote..."
-  }
-]`,
+      placeholder: `{
+  "Guangzhou Playmat Factory": [
+    { "role": "user", "content": "Can you share your catalog?" },
+    { "role": "assistant", "content": "Sure, here it is." }
+  ],
+  "Shenzhen Baby Products Co.": [
+    { "role": "user", "content": "What is your MOQ?" },
+    { "role": "assistant", "content": "MOQ is 500 pcs." }
+  ]
+}`,
       stateKey: "pastSupplierConversation",
     },
   ];
@@ -518,7 +530,9 @@ export function NewScenarioDialog({
                           </p>
                         )}
                         <p className="text-[10px] text-muted-foreground/60">
-                          Enter a JSON array. Leave empty to skip this field.
+                          {section.key === "supplierChat"
+                            ? "Enter a JSON object. Leave empty to skip this field."
+                            : "Enter a JSON array. Leave empty to skip this field."}
                         </p>
                       </div>
                     </CollapsibleContent>
