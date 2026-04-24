@@ -147,28 +147,32 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
                     }
                   : undefined
               }
-              initialMessages={
-                run.messages && run.messages.length > 0
-                  ? run.messages.map((m: any, idx: number) => {
-                      // New format: messages stored with full parts (id, role, parts)
-                      if (m.parts && Array.isArray(m.parts)) {
+              initialMessages={(() => {
+                const mapped =
+                  run.messages && run.messages.length > 0
+                    ? run.messages.map((m: any, idx: number) => {
+                        // New format: messages stored with full parts (id, role, parts)
+                        if (m.parts && Array.isArray(m.parts)) {
+                          return {
+                            id: m.id || `stored-${idx}`,
+                            role: m.role,
+                            parts: m.parts,
+                          };
+                        }
+                        // Legacy format: messages stored with content only
                         return {
-                          id: m.id || `stored-${idx}`,
+                          id: `stored-${idx}`,
                           role: m.role,
-                          parts: m.parts,
+                          parts: [{ type: 'text' as const, text: m.content || '' }],
                         };
-                      }
-                      // Legacy format: messages stored with content only
-                      return {
-                        id: `stored-${idx}`,
-                        role: m.role,
-                        parts: [{ type: 'text' as const, text: m.content || '' }],
-                      };
-                    })
-                  : run.output
-                    ? [{ id: 'initial-output', role: 'assistant' as const, parts: [{ type: 'text' as const, text: run.output }] }]
-                    : []
-              }
+                      })
+                    : run.output
+                      ? [{ id: 'initial-output', role: 'assistant' as const, parts: [{ type: 'text' as const, text: run.output }] }]
+                      : [];
+
+                // Deduplicate by id to prevent assistant-ui crash on duplicate message IDs
+                return [...new Map(mapped.map((m) => [m.id, m])).values()];
+              })()}
             />
           </div>
 

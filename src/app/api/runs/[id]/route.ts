@@ -49,12 +49,28 @@ export async function PATCH(
       );
     }
 
-    await db
-      .update(runs)
-      .set({
-        messages: sql`COALESCE(messages, '[]'::jsonb) || ${JSON.stringify(messages)}::jsonb`,
-      })
+    // Fetch existing messages to deduplicate by id
+    const currentRun = await db
+      .select({ messages: runs.messages })
+      .from(runs)
       .where(eq(runs.id, id));
+
+    const existingMessages = (currentRun[0]?.messages as Array<{ id?: string }>) || [];
+    const existingIds = new Set(existingMessages.map((m) => m.id).filter(Boolean));
+
+    // Only append messages whose id is not already present
+    const uniqueNewMessages = messages.filter(
+      (m: any) => !m.id || !existingIds.has(m.id)
+    );
+
+    if (uniqueNewMessages.length > 0) {
+      await db
+        .update(runs)
+        .set({
+          messages: sql`COALESCE(messages, '[]'::jsonb) || ${JSON.stringify(uniqueNewMessages)}::jsonb`,
+        })
+        .where(eq(runs.id, id));
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
