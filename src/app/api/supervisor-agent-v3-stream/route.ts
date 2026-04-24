@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  normalizeSupplierConversations,
+  flattenSupplierConversations,
+} from "@/lib/supplier-conversations";
 
 const MASTRA_SERVER_URL =
   process.env.NEXT_PUBLIC_MASTRA_SERVER_URL ?? "http://localhost:4111";
@@ -45,9 +49,11 @@ export async function POST(request: NextRequest) {
     };
 
     const customerConversationText = formatConversation(conversationMessages);
-    const supplierConversationText = pastSupplierConversation
-      ? formatConversation(pastSupplierConversation)
-      : "No past supplier conversation available.";
+    const normalizedSuppliers = normalizeSupplierConversations(pastSupplierConversation);
+    const flattened = flattenSupplierConversations(normalizedSuppliers);
+    const supplierConversationText = flattened.length > 0
+      ? formatConversation(flattened)
+      : "No past supplier conversation available."
 
     // Build the prompt with all required context
     const prompt = `
