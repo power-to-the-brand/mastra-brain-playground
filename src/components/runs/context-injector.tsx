@@ -4,12 +4,16 @@ import { useAui, useAuiState } from "@assistant-ui/react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { MessageSquare, ClipboardList, Package, History } from "lucide-react";
+import {
+  normalizeSupplierConversations,
+  countSupplierMessages,
+} from "@/lib/supplier-conversations";
 
 export interface ContextData {
   conversationMessages?: unknown[] | null;
   srData?: unknown[] | null;
   products?: unknown[] | null;
-  supplierHistory?: unknown[] | null;
+  supplierHistory?: unknown;
 }
 
 interface ContextInjectorProps {
@@ -20,7 +24,7 @@ interface ContextItem {
   key: keyof ContextData;
   label: string;
   icon: React.ReactNode;
-  data: unknown[] | null | undefined;
+  data: unknown;
 }
 
 export const PLACEHOLDERS: Record<keyof ContextData, string> = {
@@ -40,7 +44,17 @@ export function replacePlaceholders(
     if (!result.includes(placeholder)) continue;
 
     const data = contextData[key as keyof ContextData];
-    if (!Array.isArray(data) || data.length === 0) {
+    if (data === null || data === undefined) {
+      result = result.replaceAll(placeholder, "");
+      continue;
+    }
+    if (key === "supplierHistory") {
+      const normalized = normalizeSupplierConversations(data);
+      if (Object.keys(normalized).length === 0) {
+        result = result.replaceAll(placeholder, "");
+        continue;
+      }
+    } else if (!Array.isArray(data) || data.length === 0) {
       result = result.replaceAll(placeholder, "");
       continue;
     }
@@ -59,6 +73,29 @@ export function replacePlaceholders(
 }
 
 function formatContext(name: string, data: unknown): string {
+  // Handle multi-supplier conversation object
+  if (
+    name === "Supplier History" &&
+    typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data)
+  ) {
+    const normalized = normalizeSupplierConversations(data);
+    const entries = Object.entries(normalized);
+    if (entries.length === 0) {
+      return `\n--- ${name} ---\n(No supplier history)\n---\n`;
+    }
+    const lines = entries.map(([supplier, msgs]) => {
+      const msgLines = (msgs as any[]).map((m: any) => {
+        const role = m.role || "unknown";
+        const content = m.content || m.message || m.text || JSON.stringify(m);
+        return `[${role}]: ${content}`;
+      });
+      return `--- ${supplier} ---\n${msgLines.join("\n\n")}`;
+    });
+    return `\n--- ${name} ---\n${lines.join("\n\n")}\n---\n`;
+  }
+
   if (Array.isArray(data) && data.length > 0) {
     const firstItem = data[0];
     if (
@@ -109,9 +146,13 @@ export function ContextInjector({ contextData }: ContextInjectorProps) {
     },
   ];
 
-  const availableItems = items.filter(
-    (item) => Array.isArray(item.data) && item.data.length > 0
-  );
+  const availableItems = items.filter((item) => {
+    if (item.key === "supplierHistory") {
+      const normalized = normalizeSupplierConversations(item.data);
+      return Object.keys(normalized).length > 0;
+    }
+    return Array.isArray(item.data) && item.data.length > 0;
+  });
 
   if (availableItems.length === 0) return null;
 
@@ -165,7 +206,11 @@ export function ContextInjector({ contextData }: ContextInjectorProps) {
             variant="secondary"
             className="h-3.5 min-w-3.5 px-1 text-[9px] bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-400"
           >
-            {item.data!.length}
+            {item.key === "supplierHistory"
+              ? countSupplierMessages(normalizeSupplierConversations(item.data))
+              : Array.isArray(item.data)
+                ? item.data.length
+                : 0}
           </Badge>
         </button>
       ))}

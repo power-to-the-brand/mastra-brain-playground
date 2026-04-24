@@ -17,7 +17,9 @@ export const scenarios = pgTable("scenarios", {
   conversationMessages: jsonb("conversation_messages"),
   srData: jsonb("sr_data"),
   products: jsonb("products"),
-  pastSupplierConversation: jsonb("past_supplier_conversation"),
+  pastSupplierConversation: jsonb("past_supplier_conversation").$type<
+    Record<string, Array<{ role: string; content: string; image?: string }>>
+  >(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
