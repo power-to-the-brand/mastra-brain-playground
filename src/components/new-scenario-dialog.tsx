@@ -51,6 +51,7 @@ interface NewScenarioDialogProps {
   onCreated?: () => void;
   onUpdated?: () => void;
   scenario?: ScenarioData | null;
+  mode?: "create" | "edit" | "duplicate";
 }
 
 interface SectionConfig {
@@ -67,8 +68,10 @@ export function NewScenarioDialog({
   onCreated,
   onUpdated,
   scenario,
+  mode = "create",
 }: NewScenarioDialogProps) {
-  const isEditMode = !!scenario;
+  const isEditMode = mode === "edit";
+  const isDuplicateMode = mode === "duplicate";
 
   const [name, setName] = useState("");
   const [conversationMessages, setConversationMessages] = useState("");
@@ -87,7 +90,7 @@ export function NewScenarioDialog({
   // Pre-populate form when editing
   useEffect(() => {
     if (scenario) {
-      setName(scenario.name);
+      setName(isDuplicateMode ? `${scenario.name} (Copy)` : scenario.name);
       setConversationMessages(
         scenario.conversationMessages?.length
           ? JSON.stringify(scenario.conversationMessages, null, 2)
@@ -107,7 +110,7 @@ export function NewScenarioDialog({
           : "",
       );
     }
-  }, [scenario]);
+  }, [scenario, isDuplicateMode]);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -366,12 +369,18 @@ export function NewScenarioDialog({
         <div className="px-6 pt-6 pb-2">
           <DialogHeader>
             <DialogTitle className="text-xl font-serif font-bold tracking-tight text-foreground">
-              {isEditMode ? "Edit Scenario" : "New Scenario"}
+              {isEditMode
+                ? "Edit Scenario"
+                : isDuplicateMode
+                  ? "Duplicate Scenario"
+                  : "New Scenario"}
             </DialogTitle>
             <DialogDescription className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
               {isEditMode
                 ? "Edit scenario by updating JSON data for each field"
-                : "Create a scenario by providing JSON data for each field"}
+                : isDuplicateMode
+                  ? "Create a copy of an existing scenario"
+                  : "Create a scenario by providing JSON data for each field"}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -540,7 +549,13 @@ export function NewScenarioDialog({
             className="flex-1 sm:flex-none bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-sm gap-2"
           >
             <Save size={16} />
-            {isSaving ? "Saving..." : isEditMode ? "Update Scenario" : "Save Scenario"}
+            {isSaving
+              ? "Saving..."
+              : isEditMode
+                ? "Update Scenario"
+                : isDuplicateMode
+                  ? "Duplicate Scenario"
+                  : "Save Scenario"}
           </Button>
         </DialogFooter>
       </DialogContent>

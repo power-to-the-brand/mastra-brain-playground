@@ -48,17 +48,7 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         href: "/skills",
         label: "Skills",
         icon: <Settings size={18} strokeWidth={2} />,
-      },
-      {
-        href: "/references",
-        label: "References",
-        icon: <FileText size={18} strokeWidth={2} />,
-      },
-      {
-        href: "/tools",
-        label: "Tools",
-        icon: <Wrench size={18} strokeWidth={2} />,
-      },
+      }
     ];
 
     const testItems = [

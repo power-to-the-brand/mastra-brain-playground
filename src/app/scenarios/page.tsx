@@ -24,6 +24,7 @@ import {
   MessageCircle,
   Play,
   Pencil,
+  Copy,
 } from "lucide-react";
 import type { Scenario } from "@/db/schema";
 import { ToastProvider, useToast } from "@/components/ui/toast-provider";
@@ -62,6 +63,9 @@ function ScenariosPageContent() {
   const [scenarioToEdit, setScenarioToEdit] =
     useState<ScenarioWithMeta | null>(null);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [scenarioToDuplicate, setScenarioToDuplicate] =
+    useState<ScenarioWithMeta | null>(null);
 
   const loadScenarios = async (pageToLoad = page) => {
     setLoading(true);
@@ -149,6 +153,12 @@ function ScenariosPageContent() {
 
   const handleNewScenario = () => {
     setNewDialogOpen(true);
+  };
+
+  const handleDuplicate = (scenario: ScenarioWithMeta, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setScenarioToDuplicate(scenario);
+    setDuplicateDialogOpen(true);
   };
 
   if (loading && scenarios.length === 0) {
@@ -371,6 +381,15 @@ function ScenariosPageContent() {
                             <Button
                               size="sm"
                               variant="ghost"
+                              onClick={(e) => handleDuplicate(scenario, e)}
+                              className="text-muted-foreground/60 hover:text-primary hover:bg-primary/10 h-8 w-8 p-0"
+                              title="Duplicate scenario"
+                            >
+                              <Copy size={14} />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={(e) => handleDelete(scenario.id, e)}
                               className="text-destructive/60 hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
                               title="Delete scenario"
@@ -459,6 +478,18 @@ function ScenariosPageContent() {
         onOpenChange={setNewDialogOpen}
         onCreated={() => {
           addToast("Scenario created successfully!", "success");
+          loadScenarios();
+        }}
+      />
+
+      <NewScenarioDialog
+        open={duplicateDialogOpen}
+        onOpenChange={setDuplicateDialogOpen}
+        mode="duplicate"
+        scenario={scenarioToDuplicate}
+        onCreated={() => {
+          addToast("Scenario duplicated successfully!", "success");
+          setScenarioToDuplicate(null);
           loadScenarios();
         }}
       />

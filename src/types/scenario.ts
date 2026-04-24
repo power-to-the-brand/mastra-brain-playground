@@ -6,6 +6,8 @@ export interface ChatMessage {
   image?: string;
 }
 
+export type SupplierConversations = Record<string, ChatMessage[]>;
+
 export interface VetoSpec {
   spec_id: number;
   spec_name: string;
@@ -270,7 +272,7 @@ export interface ScenarioOutput {
   conversationMessages: ChatMessage[];
   srData: SRData[];
   products: QuotationData[];
-  pastSupplierConversation: ChatMessage[];
+  pastSupplierConversation: SupplierConversations | ChatMessage[];
 }
 
 // Save scenario request interface
@@ -279,7 +281,7 @@ export interface SaveScenarioRequest {
   conversationMessages: ChatMessage[];
   srData: SRData[];
   products?: QuotationData[];
-  pastSupplierConversation: ChatMessage[];
+  pastSupplierConversation: SupplierConversations | ChatMessage[];
 }
 
 // Save scenario response interface
@@ -290,7 +292,7 @@ export interface SaveScenarioResponse {
     conversationMessages: ChatMessage[];
     srData: SRData[];
     products?: QuotationData[];
-    pastSupplierConversation: ChatMessage[];
+    pastSupplierConversation: SupplierConversations | ChatMessage[];
     createdAt: string;
   };
 }
