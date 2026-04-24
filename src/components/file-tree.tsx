@@ -24,6 +24,10 @@ interface FileTreeProps {
   rootPrefix?: string;
   onSelectSkill?: (prefix: string) => void;
   onDropFiles?: (files: DroppedFile[], targetPrefix: string) => void;
+  selectable?: boolean;
+  selectedKeys?: Set<string>;
+  onToggleSelect?: (key: string) => void;
+  onSelectFile?: (node: TreeNode) => void;
 }
 
 async function readEntriesRecursively(reader: any): Promise<any[]> {
@@ -66,7 +70,7 @@ async function collectFilesFromDrop(items: DataTransferItemList): Promise<Droppe
   return result;
 }
 
-export function FileTree({ rootPrefix = 'playground/', onSelectSkill, onDropFiles }: FileTreeProps) {
+export function FileTree({ rootPrefix = 'playground/', onSelectSkill, onDropFiles, selectable, selectedKeys, onToggleSelect, onSelectFile }: FileTreeProps) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set([rootPrefix]));
   const [treeData, setTreeData] = useState<Record<string, { folders: TreeNode[]; files: TreeNode[]; hasSkill?: boolean }>>({});
   const [loading, setLoading] = useState<Set<string>>(new Set());
@@ -242,16 +246,33 @@ export function FileTree({ rootPrefix = 'playground/', onSelectSkill, onDropFile
           node={folder}
           level={0}
           onToggle={toggle}
-          onSelect={(node) => node.hasSkill && onSelectSkill?.(node.prefix)}
+          onSelect={onSelectFile || ((node) => node.hasSkill && onSelectSkill?.(node.prefix))}
           onContextMenu={handleContextMenu}
           onDrop={handleDrop}
           expanded={expanded}
           loading={loading}
           treeData={treeData}
+          selectable={selectable}
+          selectedKeys={selectedKeys}
+          onToggleSelect={onToggleSelect}
         />
       ))}
       {rootData?.files.map((file) => (
-        <FileTreeNode key={file.prefix} node={file} level={0} onToggle={toggle} onSelect={(node) => node.hasSkill && onSelectSkill?.(node.prefix)} onContextMenu={handleContextMenu} onDrop={handleDrop} expanded={expanded} loading={loading} treeData={treeData} />
+        <FileTreeNode
+          key={file.prefix}
+          node={file}
+          level={0}
+          onToggle={toggle}
+          onSelect={onSelectFile || ((node) => node.hasSkill && onSelectSkill?.(node.prefix))}
+          onContextMenu={handleContextMenu}
+          onDrop={handleDrop}
+          expanded={expanded}
+          loading={loading}
+          treeData={treeData}
+          selectable={selectable}
+          selectedKeys={selectedKeys}
+          onToggleSelect={onToggleSelect}
+        />
       ))}
 
       {!isRootLoading && !fetchError && !hasContent && (
