@@ -66,11 +66,6 @@ export async function GET(request: NextRequest) {
         status: runs.status,
         verdict: runs.verdict,
         metrics: runs.metrics,
-        output: runs.output,
-        messages: runs.messages,
-        trace: runs.trace,
-        createdAt: runs.createdAt,
-        updatedAt: runs.updatedAt,
       })
       .from(runs)
       .leftJoin(agents, eq(runs.agentId, agents.id))
