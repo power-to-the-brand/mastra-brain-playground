@@ -133,10 +133,20 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
         <div className="flex-1 flex overflow-hidden">
           {/* Chat Area */}
           <div className="flex-1 flex flex-col bg-stone-50 dark:bg-stone-950 relative">
-            <ChatView 
-              agentId={run.agentId} 
-              scenarioId={run.scenarioId} 
+            <ChatView
+              agentId={run.agentId}
+              scenarioId={run.scenarioId}
               runId={run.id}
+              contextData={
+                run.scenario
+                  ? {
+                      conversationMessages: run.scenario.conversationMessages || null,
+                      srData: run.scenario.srData || null,
+                      products: run.scenario.products || null,
+                      supplierHistory: run.scenario.pastSupplierConversation || null,
+                    }
+                  : undefined
+              }
               initialMessages={
                 run.messages && run.messages.length > 0
                   ? run.messages.map((m: any, idx: number) => {
@@ -158,7 +168,7 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
                   : run.output
                     ? [{ id: 'initial-output', role: 'assistant' as const, parts: [{ type: 'text' as const, text: run.output }] }]
                     : []
-              } 
+              }
             />
           </div>
 

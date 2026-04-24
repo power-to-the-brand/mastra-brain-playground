@@ -24,6 +24,7 @@ import {
   useAuiState,
   useAui,
 } from "@assistant-ui/react";
+import { ContextInjector, type ContextData, replacePlaceholders } from "@/components/runs/context-injector";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -41,9 +42,10 @@ import type { FC } from "react";
 
 interface ThreadProps {
   scenarioId?: string;
+  contextData?: ContextData;
 }
 
-export const Thread: FC<ThreadProps> = ({ scenarioId }) => {
+export const Thread: FC<ThreadProps> = ({ scenarioId, contextData }) => {
   return (
     <ThreadPrimitive.Root
       className="aui-root aui-thread-root @container flex h-full flex-col bg-stone-50 dark:bg-stone-950"
@@ -74,7 +76,7 @@ export const Thread: FC<ThreadProps> = ({ scenarioId }) => {
 
           <ThreadPrimitive.ViewportFooter className="aui-thread-viewport-footer sticky bottom-0 mt-auto flex flex-col gap-4 overflow-visible rounded-t-(--composer-radius) bg-stone-50 dark:bg-stone-950 pb-4 md:pb-6">
             <ThreadScrollToBottom />
-            <Composer />
+            <Composer contextData={contextData} />
           </ThreadPrimitive.ViewportFooter>
         </div>
       </ThreadPrimitive.Viewport>
@@ -162,26 +164,63 @@ const ThreadSuggestionItem: FC = () => {
   );
 };
 
-const Composer: FC = () => {
+const Composer: FC<{ contextData?: ContextData }> = ({ contextData }) => {
+  const aui = useAui();
+  const composerText = useAuiState((s) => s.composer.text);
+
+  const handleSend = () => {
+    const text = composerText;
+    if (!text.trim()) return;
+
+    if (contextData) {
+      const replaced = replacePlaceholders(text, contextData);
+      if (replaced !== text) {
+        aui.composer().setText(replaced);
+      }
+    }
+
+    aui.composer().send();
+  };
+
   return (
-    <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
+    <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col gap-2">
+      {contextData && (
+        <ContextInjector contextData={contextData} />
+      )}
       <ComposerPrimitive.AttachmentDropzone render={<div data-slot="aui_composer-shell" className="flex w-full flex-col gap-2 rounded-(--composer-radius) border bg-background p-(--composer-padding) transition-shadow focus-within:border-ring/75 focus-within:ring-2 focus-within:ring-ring/20 data-[dragging=true]:border-ring data-[dragging=true]:border-dashed data-[dragging=true]:bg-accent/50" />}><ComposerAttachments /><ComposerPrimitive.Input
                       placeholder="Send a message..."
                       className="aui-composer-input max-h-32 min-h-10 w-full resize-none bg-transparent px-1.75 py-1 text-sm outline-none placeholder:text-muted-foreground/80"
                       rows={1}
                       autoFocus
                       aria-label="Message input"
-                    /><ComposerAction /></ComposerPrimitive.AttachmentDropzone>
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSend();
+                        }
+                      }}
+                    /><ComposerAction onSend={handleSend} /></ComposerPrimitive.AttachmentDropzone>
     </ComposerPrimitive.Root>
   );
 };
 
-const ComposerAction: FC = () => {
+const ComposerAction: FC<{ onSend: () => void }> = ({ onSend }) => {
   return (
     <div className="aui-composer-action-wrapper relative flex items-center justify-between">
       <ComposerAddAttachment />
       <AuiIf condition={(s) => !s.thread.isRunning}>
-        <ComposerPrimitive.Send render={<TooltipIconButton tooltip="Send message" side="bottom" type="button" variant="default" size="icon" className="aui-composer-send size-8 rounded-full" aria-label="Send message" />}><ArrowUpIcon className="aui-composer-send-icon size-4" /></ComposerPrimitive.Send>
+        <TooltipIconButton
+          tooltip="Send message"
+          side="bottom"
+          type="button"
+          variant="default"
+          size="icon"
+          className="aui-composer-send size-8 rounded-full"
+          aria-label="Send message"
+          onClick={onSend}
+        >
+          <ArrowUpIcon className="aui-composer-send-icon size-4" />
+        </TooltipIconButton>
       </AuiIf>
       <AuiIf condition={(s) => s.thread.isRunning}>
         <ComposerPrimitive.Cancel render={<Button type="button" variant="default" size="icon" className="aui-composer-cancel size-8 rounded-full" aria-label="Stop generating" />}><SquareIcon className="aui-composer-cancel-icon size-3 fill-current" /></ComposerPrimitive.Cancel>

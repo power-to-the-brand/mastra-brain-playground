@@ -5,6 +5,7 @@ import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { Thread } from "@/components/assistant-ui/thread";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useRef } from "react";
+import type { ContextData } from "@/components/runs/context-injector";
 
 const MASTRA_SERVER_URL = process.env.NEXT_PUBLIC_MASTRA_SERVER_URL || "http://localhost:4111";
 
@@ -13,6 +14,7 @@ interface ChatViewProps {
   scenarioId: string;
   runId: string;
   initialMessages?: UIMessage[];
+  contextData?: ContextData;
 }
 
 function MessageSaver({ runId, runtime }: { runId: string; runtime: AssistantRuntime }) {
@@ -82,7 +84,7 @@ function MessageSaver({ runId, runtime }: { runId: string; runtime: AssistantRun
   return null;
 }
 
-export function ChatView({ agentId, scenarioId, runId, initialMessages = [] }: ChatViewProps) {
+export function ChatView({ agentId, scenarioId, runId, initialMessages = [], contextData }: ChatViewProps) {
   const runtime = useChatRuntime({
     transport: new DefaultChatTransport({
       api: `${MASTRA_SERVER_URL}/chat/dynamic`,
@@ -99,7 +101,7 @@ export function ChatView({ agentId, scenarioId, runId, initialMessages = [] }: C
     <AssistantRuntimeProvider runtime={runtime}>
       <MessageSaver runId={runId} runtime={runtime} />
       <div className="flex-1 flex flex-col h-full bg-stone-50 dark:bg-stone-950">
-        <Thread scenarioId={scenarioId} />
+        <Thread scenarioId={scenarioId} contextData={contextData} />
       </div>
     </AssistantRuntimeProvider>
   );

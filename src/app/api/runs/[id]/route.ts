@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { runs } from "@/db/schema";
+import { runs, scenarios } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 
 export async function GET(
@@ -10,15 +10,22 @@ export async function GET(
   const { id } = await params;
 
   try {
-    const run = await db.query.runs.findFirst({
-      where: eq(runs.id, id),
-    });
+    const result = await db
+      .select({
+        run: runs,
+        scenario: scenarios,
+      })
+      .from(runs)
+      .leftJoin(scenarios, eq(runs.scenarioId, scenarios.id))
+      .where(eq(runs.id, id));
 
-    if (!run) {
+    if (result.length === 0) {
       return NextResponse.json({ error: "Run not found" }, { status: 404 });
     }
 
-    return NextResponse.json(run);
+    const { run, scenario } = result[0];
+
+    return NextResponse.json({ ...run, scenario });
   } catch (error) {
     console.error("Failed to fetch run:", error);
     return NextResponse.json({ error: "Failed to fetch run" }, { status: 500 });
