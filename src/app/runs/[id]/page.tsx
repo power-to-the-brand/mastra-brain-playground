@@ -48,16 +48,16 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-black text-white">
-        <div className="animate-pulse">Loading run details...</div>
+      <div className="flex h-screen items-center justify-center bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
+        <div className="animate-pulse text-sm font-medium">Loading run details...</div>
       </div>
     );
   }
 
   if (!run) {
     return (
-      <div className="flex h-screen items-center justify-center bg-black text-white">
-        <div>Run not found.</div>
+      <div className="flex h-screen items-center justify-center bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
+        <div className="text-sm font-medium">Run not found.</div>
       </div>
     );
   }
