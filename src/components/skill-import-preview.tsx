@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Loader2 } from 'lucide-react';
 
 export interface DetectedSkill {
   path: string;
@@ -21,9 +22,10 @@ interface SkillImportPreviewProps {
   targetPrefix: string;
   onConfirm: (skills: DetectedSkill[]) => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }
 
-export function SkillImportPreview({ open, skills, targetPrefix, onConfirm, onCancel }: SkillImportPreviewProps) {
+export function SkillImportPreview({ open, skills, targetPrefix, onConfirm, onCancel, isLoading }: SkillImportPreviewProps) {
   const [editableSkills, setEditableSkills] = useState<DetectedSkill[]>(skills);
 
   const updateSkill = (index: number, field: keyof DetectedSkill, value: string | string[]) => {
@@ -73,8 +75,17 @@ export function SkillImportPreview({ open, skills, targetPrefix, onConfirm, onCa
           ))}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button onClick={() => onConfirm(editableSkills)}>Import</Button>
+          <Button variant="outline" onClick={onCancel} disabled={isLoading}>Cancel</Button>
+          <Button onClick={() => onConfirm(editableSkills)} disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Importing...
+              </>
+            ) : (
+              'Import'
+            )}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

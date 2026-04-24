@@ -20,6 +20,7 @@ export function SkillFileManager({ children }: SkillFileManagerProps) {
   const [detectedSkills, setDetectedSkills] = useState<DetectedSkill[]>([]);
   const [importTargetPrefix, setImportTargetPrefix] = useState('');
   const [pendingFiles, setPendingFiles] = useState<FileEntry[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
 
   const handleDrop = useCallback(
     async (files: DroppedFile[], targetPrefix: string) => {
@@ -55,6 +56,7 @@ export function SkillFileManager({ children }: SkillFileManagerProps) {
 
   const handleImportConfirm = useCallback(
     async (skills: DetectedSkill[]) => {
+      setIsImporting(true);
       try {
         const res = await fetch('/api/skills/import', {
           method: 'POST',
@@ -67,6 +69,8 @@ export function SkillFileManager({ children }: SkillFileManagerProps) {
       } catch (err) {
         console.error('Import failed:', err);
         alert('Import failed. Check console for details.');
+      } finally {
+        setIsImporting(false);
       }
     },
     [importTargetPrefix, pendingFiles]
@@ -84,6 +88,7 @@ export function SkillFileManager({ children }: SkillFileManagerProps) {
         targetPrefix={importTargetPrefix}
         onConfirm={handleImportConfirm}
         onCancel={() => setImportOpen(false)}
+        isLoading={isImporting}
       />
     </div>
   );

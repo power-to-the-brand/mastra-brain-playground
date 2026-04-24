@@ -60,6 +60,7 @@ export default function BulkUploadPage() {
   const [importTargetPrefix, setImportTargetPrefix] = useState('');
   const [pendingFiles, setPendingFiles] = useState<FileEntry[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const processDroppedFiles = useCallback(async (files: DroppedFile[], targetPrefix: string) => {
     if (files.length === 0) return;
@@ -115,6 +116,7 @@ export default function BulkUploadPage() {
   }, []);
 
   const handleImportConfirm = useCallback(async (_skills: DetectedSkill[]) => {
+    setIsImporting(true);
     try {
       const res = await fetch('/api/skills/import', {
         method: 'POST',
@@ -127,6 +129,8 @@ export default function BulkUploadPage() {
     } catch (err) {
       console.error('Import failed:', err);
       alert('Import failed. Check console for details.');
+    } finally {
+      setIsImporting(false);
     }
   }, [importTargetPrefix, pendingFiles]);
 
@@ -179,6 +183,7 @@ export default function BulkUploadPage() {
         targetPrefix={importTargetPrefix}
         onConfirm={handleImportConfirm}
         onCancel={() => setImportOpen(false)}
+        isLoading={isImporting}
       />
     </div>
   );
