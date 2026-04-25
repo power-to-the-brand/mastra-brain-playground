@@ -22,6 +22,7 @@ export {
   agentTools,
   runs,
   references,
+  mockTools,
 } from "./schema";
 export type {
   Scenario,
@@ -36,4 +37,6 @@ export type {
   NewRun,
   Reference,
   NewReference,
+  MockTool,
+  NewMockTool,
 } from "./schema";
