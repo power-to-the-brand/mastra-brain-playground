@@ -40,6 +40,22 @@ interface ConversionResult {
   error?: string;
 }
 
+interface GeneratedSuccess {
+  fileKey: string;
+  success: true;
+  toolId: string;
+  name: string;
+  data: z.infer<typeof mockToolSchema>;
+}
+
+interface GeneratedFailure {
+  fileKey: string;
+  success: false;
+  error: string;
+}
+
+type GeneratedResult = GeneratedSuccess | GeneratedFailure;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -70,7 +86,7 @@ export async function POST(request: NextRequest) {
       fileKeys.map(async (key) => {
         try {
           const content = await getFromS3(key);
-          return { key, content, error: null };
+          return { key, content, error: null as string | null };
         } catch (err: any) {
           return { key, content: "", error: err.message || "Failed to read from S3" };
         }
@@ -78,10 +94,10 @@ export async function POST(request: NextRequest) {
     );
 
     // Step 2: Generate mock tools in parallel
-    const generatedResults = await Promise.all(
-      fileContents.map(async ({ key, content, error }) => {
+    const generatedResults: GeneratedResult[] = await Promise.all(
+      fileContents.map(async ({ key, content, error }): Promise<GeneratedResult> => {
         if (error) {
-          return { key, success: false, error } as ConversionResult;
+          return { fileKey: key, success: false, error };
         }
 
         try {
@@ -103,7 +119,7 @@ Rules:
           });
 
           return {
-            key,
+            fileKey: key,
             success: true,
             toolId: object.toolId,
             name: object.name,
@@ -111,7 +127,7 @@ Rules:
           };
         } catch (err: any) {
           return {
-            key,
+            fileKey: key,
             success: false,
             error: err.message || "LLM generation failed",
           };
@@ -120,13 +136,13 @@ Rules:
     );
 
     // Step 3: Batch insert successful results with upsert
-    const successful = generatedResults.filter((r) => r.success);
+    const successful = generatedResults.filter((r): r is GeneratedSuccess => r.success);
     const results: ConversionResult[] = generatedResults.map((r) => ({
-      fileKey: r.key,
+      fileKey: r.fileKey,
       success: r.success,
-      toolId: r.success ? (r as any).toolId : undefined,
-      name: r.success ? (r as any).name : undefined,
-      error: r.success ? undefined : (r as any).error,
+      toolId: r.success ? r.toolId : undefined,
+      name: r.success ? r.name : undefined,
+      error: r.success ? undefined : r.error,
     }));
 
     if (successful.length > 0) {
@@ -161,8 +177,8 @@ Rules:
         // Mark all as failed if DB insert fails
         return NextResponse.json(
           {
-            results: successful.map((r: any) => ({
-              fileKey: r.key,
+            results: successful.map((r) => ({
+              fileKey: r.fileKey,
               success: false,
               error: `DB insert failed: ${err.message}`,
             })),
