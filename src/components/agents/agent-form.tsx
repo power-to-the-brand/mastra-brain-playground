@@ -18,6 +18,7 @@ interface AgentData {
   description?: string;
   model: string;
   instruction: string;
+  moduleId?: string | null;
   subagents?: { subagentId: string }[];
   skills?: { skillId: string }[];
   tools?: { toolId: string; toolType: string }[];
@@ -41,6 +42,7 @@ interface AgentFormProps {
   availableSkills: { id: string; name: string }[];
   availableTools: { id: string; name: string; description: string }[];
   availableMockTools: AvailableMockTool[];
+  availableModules?: { id: string; name: string }[];
   onSuccess: () => void;
   onCancel: () => void;
   onRefreshTools?: () => void;
@@ -63,6 +65,7 @@ export function AgentForm({
   onCancel,
   onRefreshTools,
   isRefreshingTools,
+  availableModules = [],
 }: AgentFormProps) {
   const [name, setName] = useState(agent?.name || "");
   const [description, setDescription] = useState(agent?.description || "");
@@ -86,6 +89,9 @@ export function AgentForm({
   );
   const [builderTools, setBuilderTools] = useState<MockToolData[]>([]);
   const [isSavingMockTools, setIsSavingMockTools] = useState(false);
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(
+    agent?.moduleId ?? null
+  );
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -95,6 +101,7 @@ export function AgentForm({
       setDescription(agent.description || "");
       setModel(agent.model || MODELS[0].value);
       setInstruction(agent.instruction || "");
+      setSelectedModuleId(agent.moduleId ?? null);
       setSelectedSubagentIds(
         Array.isArray(agent.subagents) ? agent.subagents.map((s) => s.subagentId) : []
       );
@@ -150,6 +157,7 @@ export function AgentForm({
       setSelectedToolIds([]);
       setSelectedMockToolIds([]);
       setBuilderTools([]);
+      setSelectedModuleId(null);
     }
   }, [agent, availableMockTools]);
 
@@ -219,6 +227,7 @@ export function AgentForm({
       skillIds: selectedSkillIds,
       toolIds: selectedToolIds,
       mockToolIds,
+      moduleId: selectedModuleId,
     };
 
     console.log("Saving agent with payload:", payload);
@@ -337,6 +346,21 @@ export function AgentForm({
         >
           {MODELS.map((m) => (
             <option key={m.value} value={m.value}>{m.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="module" className="text-stone-700 dark:text-stone-300">Module (optional)</Label>
+        <select
+          id="module"
+          value={selectedModuleId ?? ""}
+          onChange={(e) => setSelectedModuleId(e.target.value || null)}
+          className="w-full px-3 py-2 bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+        >
+          <option value="">— None —</option>
+          {availableModules.map((mod) => (
+            <option key={mod.id} value={mod.id}>{mod.name}</option>
           ))}
         </select>
       </div>
