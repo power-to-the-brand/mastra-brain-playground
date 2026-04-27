@@ -54,7 +54,7 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         href: "/s3-workspace",
         label: "S3 Workspace",
         icon: <Cloud size={18} strokeWidth={2} />,
-      }
+      },
     ];
 
     const testItems = [

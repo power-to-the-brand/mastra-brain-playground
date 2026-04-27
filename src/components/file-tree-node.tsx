@@ -13,11 +13,17 @@ interface FileTreeNodeProps {
   expanded: Set<string>;
   loading: Set<string>;
   treeData: Record<string, { folders: TreeNode[]; files: TreeNode[]; hasSkill?: boolean }>;
+  selectable?: boolean;
+  selectedKeys?: Set<string>;
+  onToggleSelect?: (key: string) => void;
 }
 
 export function FileTreeNode({
   node, level, onToggle, onSelect, onContextMenu, onDrop,
   expanded, loading, treeData,
+  selectable,
+  selectedKeys,
+  onToggleSelect,
 }: FileTreeNodeProps) {
   const isFolder = node.type === 'folder';
   const paddingLeft = level * 16 + 8;
@@ -36,9 +42,18 @@ export function FileTreeNode({
   return (
     <div>
       <div
-        className="flex items-center gap-1 py-1 px-2 rounded-sm hover:bg-accent cursor-pointer select-none text-sm"
+        className={`flex items-center gap-1 py-1 px-2 rounded-sm hover:bg-accent cursor-pointer select-none text-sm${selectedKeys?.has(node.prefix) ? ' bg-primary/5' : ''}`}
         style={{ paddingLeft }}
-        onClick={() => isFolder ? onToggle(node.prefix) : onSelect(node)}
+        onClick={(e) => {
+          if (isFolder) {
+            onToggle(node.prefix);
+          } else {
+            onSelect?.(node);
+            if ((e.metaKey || e.ctrlKey) && selectable) {
+              onToggleSelect?.(node.prefix);
+            }
+          }
+        }}
         onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, node); }}
         onDragOver={handleDragOver}
         onDrop={(e) => { e.preventDefault(); if (isFolder) onDrop(e, node.prefix); }}
@@ -50,7 +65,17 @@ export function FileTreeNode({
           </>
         ) : (
           <>
-            <span className="w-4" />
+            {selectable ? (
+              <input
+                type="checkbox"
+                className="w-4 h-4 shrink-0"
+                checked={selectedKeys?.has(node.prefix) ?? false}
+                onChange={(e) => { e.stopPropagation(); onToggleSelect?.(node.prefix); }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <span className="w-4" />
+            )}
             <FileText className="w-4 h-4 text-muted-foreground" />
           </>
         )}
@@ -74,6 +99,9 @@ export function FileTreeNode({
                 expanded={expanded}
                 loading={loading}
                 treeData={treeData}
+                selectable={selectable}
+                selectedKeys={selectedKeys}
+                onToggleSelect={onToggleSelect}
               />
             ))
           )}
