@@ -10,14 +10,16 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import type { MockTool } from "@/db";
 
 interface MockToolEditorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  mockTool: (MockTool & { content?: string }) | null;
-  onSave: (data: Partial<MockTool> & { content?: string }) => Promise<void>;
+  mockTool: MockTool | null;
+  onSave: (data: Partial<MockTool>) => Promise<void>;
   isSaving: boolean;
 }
 
@@ -43,9 +45,13 @@ export function MockToolEditorDialog({
               toolId: mockTool.toolId,
               name: mockTool.name,
               description: mockTool.description,
-              inputSchema: mockTool.inputSchema,
+              inputSchema: mockTool.inputSchema
+                ? JSON.stringify(mockTool.inputSchema, null, 2)
+                : "[]",
               mockMode: mockTool.mockMode,
-              mockFixedResponse: mockTool.mockFixedResponse,
+              mockFixedResponse: mockTool.mockFixedResponse
+                ? JSON.stringify(mockTool.mockFixedResponse, null, 2)
+                : "{}",
               mockSimulationPrompt: mockTool.mockSimulationPrompt,
               mockSimulationModel: mockTool.mockSimulationModel,
             }
@@ -53,9 +59,9 @@ export function MockToolEditorDialog({
               toolId: "",
               name: "",
               description: "",
-              inputSchema: [],
+              inputSchema: "[]",
               mockMode: "fixed",
-              mockFixedResponse: undefined,
+              mockFixedResponse: "{}",
               mockSimulationPrompt: "",
               mockSimulationModel: "",
             },
@@ -87,19 +93,34 @@ export function MockToolEditorDialog({
     }
 
     const inputSchemaValid = validateJson(
-      JSON.stringify(formData.inputSchema ?? []),
+      (formData.inputSchema as string) ?? "[]",
       "inputSchema",
     );
     const fixedResponseValid =
       formData.mockMode !== "fixed" ||
       validateJson(
-        JSON.stringify(formData.mockFixedResponse ?? {}),
+        (formData.mockFixedResponse as string) ?? "{}",
         "mockFixedResponse",
       );
 
     if (!inputSchemaValid || !fixedResponseValid) return;
 
-    await onSave(formData);
+    const payload = { ...formData };
+    if (typeof payload.inputSchema === "string") {
+      try {
+        payload.inputSchema = JSON.parse(payload.inputSchema || "[]");
+      } catch {
+        /* already validated */
+      }
+    }
+    if (typeof payload.mockFixedResponse === "string") {
+      try {
+        payload.mockFixedResponse = JSON.parse(payload.mockFixedResponse);
+      } catch {
+        /* already validated */
+      }
+    }
+    await onSave(payload);
   };
 
   return (
@@ -113,7 +134,7 @@ export function MockToolEditorDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="toolId">Tool ID *</Label>
-            <input
+            <Input
               id="toolId"
               type="text"
               required
@@ -121,14 +142,13 @@ export function MockToolEditorDialog({
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, toolId: e.target.value }))
               }
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               disabled={!!mockTool}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="name">Name *</Label>
-            <input
+            <Input
               id="name"
               type="text"
               required
@@ -136,13 +156,12 @@ export function MockToolEditorDialog({
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, name: e.target.value }))
               }
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-            <textarea
+            <Textarea
               id="description"
               rows={3}
               value={formData.description ?? ""}
@@ -152,16 +171,15 @@ export function MockToolEditorDialog({
                   description: e.target.value,
                 }))
               }
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="inputSchema">Input Schema (JSON)</Label>
-            <textarea
+            <Textarea
               id="inputSchema"
               rows={4}
-              value={JSON.stringify(formData.inputSchema ?? [], null, 2)}
+              value={(formData.inputSchema as string) ?? "[]"}
               onChange={(e) => {
                 setFormData((prev) => ({
                   ...prev,
@@ -169,7 +187,7 @@ export function MockToolEditorDialog({
                 }));
                 validateJson(e.target.value, "inputSchema");
               }}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-mono"
+              className="font-mono"
             />
             {jsonErrors.inputSchema && (
               <p className="text-xs text-destructive">
@@ -214,14 +232,10 @@ export function MockToolEditorDialog({
           {formData.mockMode === "fixed" && (
             <div className="space-y-2">
               <Label htmlFor="mockFixedResponse">Mock Fixed Response (JSON)</Label>
-              <textarea
+              <Textarea
                 id="mockFixedResponse"
                 rows={4}
-                value={
-                  formData.mockFixedResponse
-                    ? JSON.stringify(formData.mockFixedResponse, null, 2)
-                    : ""
-                }
+                value={(formData.mockFixedResponse as string) ?? ""}
                 onChange={(e) => {
                   setFormData((prev) => ({
                     ...prev,
@@ -229,7 +243,7 @@ export function MockToolEditorDialog({
                   }));
                   validateJson(e.target.value, "mockFixedResponse");
                 }}
-                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-mono"
+                className="font-mono"
               />
               {jsonErrors.mockFixedResponse && (
                 <p className="text-xs text-destructive">
@@ -245,7 +259,7 @@ export function MockToolEditorDialog({
                 <Label htmlFor="mockSimulationPrompt">
                   Simulation Prompt
                 </Label>
-                <textarea
+                <Textarea
                   id="mockSimulationPrompt"
                   rows={4}
                   value={formData.mockSimulationPrompt ?? ""}
@@ -255,13 +269,12 @@ export function MockToolEditorDialog({
                       mockSimulationPrompt: e.target.value,
                     }))
                   }
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="mockSimulationModel">Simulation Model</Label>
-                <input
+                <Input
                   id="mockSimulationModel"
                   type="text"
                   value={formData.mockSimulationModel ?? ""}
@@ -271,7 +284,6 @@ export function MockToolEditorDialog({
                       mockSimulationModel: e.target.value,
                     }))
                   }
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
             </>
