@@ -46,7 +46,7 @@ export function ConversionResults({ results }: ConversionResultsProps) {
           </ul>
           <div className="mt-4">
             <Link
-              href="/tools"
+              href="/mock-tools"
               className="inline-flex items-center gap-1 text-sm font-medium text-green-700 hover:text-green-900 dark:text-green-300 dark:hover:text-green-100"
             >
               View tools
