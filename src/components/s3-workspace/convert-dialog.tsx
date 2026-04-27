@@ -13,9 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
 const MODELS = [
-  { label: "Gemini 2.0 Flash", value: "google/gemini-2.0-flash" },
-  { label: "Gemini 3 Flash Preview", value: "google/gemini-3-flash-preview" },
   { label: "Gemini 3.1 Flash Lite Preview", value: "google/gemini-3.1-flash-lite-preview" },
+  { label: "Gemini 3 Flash Preview", value: "google/gemini-3-flash-preview" },
 ];
 
 interface ConvertDialogProps {
@@ -37,7 +36,7 @@ export function ConvertDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>Convert to Mock Tools</DialogTitle>
           <DialogDescription>
