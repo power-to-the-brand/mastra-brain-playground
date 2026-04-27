@@ -51,6 +51,11 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         icon: <Settings size={18} strokeWidth={2} />,
       },
       {
+        href: "/mock-tools",
+        label: "Mock Tools",
+        icon: <Wrench size={18} strokeWidth={2} />,
+      },
+      {
         href: "/s3-workspace",
         label: "S3 Workspace",
         icon: <Cloud size={18} strokeWidth={2} />,
