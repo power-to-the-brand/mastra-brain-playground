@@ -36,10 +36,17 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, description, model, instruction, subagentIds, skillIds, toolIds, mockToolIds } = body;
+    const { name, description, model, instruction, subagentIds, skillIds, toolIds, mockToolIds, moduleId } = body;
 
     await db.update(agents)
-      .set({ name, description, model, instruction, updatedAt: new Date() })
+      .set({
+        name,
+        description,
+        model,
+        instruction,
+        ...(moduleId !== undefined && { moduleId: moduleId || null }),
+        updatedAt: new Date(),
+      })
       .where(eq(agents.id, id));
 
     // Update subagents
