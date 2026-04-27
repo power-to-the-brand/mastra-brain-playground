@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AgentForm } from "@/components/agents/agent-form";
+import { ModuleManager } from "@/components/agents/module-manager";
 import { Sidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import {
@@ -23,6 +24,7 @@ interface Agent {
   description?: string;
   model: string;
   instruction: string;
+  moduleId?: string | null;
   createdAt: string;
   subagents: { agentId: string; subagentId: string }[];
   skills: { agentId: string; skillId: string }[];
@@ -41,22 +43,26 @@ export default function AgentsPage() {
   const [isRefreshingTools, setIsRefreshingTools] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+  const [modules, setModules] = useState<{ id: string; name: string; description: string | null }[]>([]);
+  const [isModulesOpen, setIsModulesOpen] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
     console.log("Fetching agents, skills, and tools...");
     try {
-      const [agentsRes, skillsRes, toolsRes, mockToolsRes] = await Promise.all([
+      const [agentsRes, skillsRes, toolsRes, mockToolsRes, modulesRes] = await Promise.all([
         fetch("/api/agents"),
         fetch("/api/skills"),
         fetch("/api/tools"),
         fetch("/api/mock-tools"),
+        fetch("/api/modules"),
       ]);
 
       const agentsRaw = await agentsRes.json();
       const skillsRaw = await skillsRes.json();
       const toolsRaw = await toolsRes.json();
       const mockToolsRaw = await mockToolsRes.json();
+      const modulesRaw = await modulesRes.json();
 
       console.log("Raw tools response:", toolsRaw);
 
@@ -116,6 +122,8 @@ export default function AgentsPage() {
       setAvailableSkills(skillsData);
       setAvailableTools(toolsData);
       setAvailableMockTools(mockToolsData);
+      const modulesData = extractArray(modulesRaw);
+      setModules(modulesData);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -171,6 +179,34 @@ export default function AgentsPage() {
     fetchData();
   }, []);
 
+  const groupAgentsByModule = (agents: Agent[], modules: { id: string; name: string }[]) => {
+    const groups: { moduleId: string | null; moduleName: string; agents: Agent[] }[] = [];
+    const moduleMap = new Map(modules.map((m) => [m.id, m.name]));
+    const grouped = new Map<string | null, Agent[]>();
+
+    for (const agent of agents) {
+      const key = agent.moduleId ?? null;
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(agent);
+    }
+
+    // Add modules in name order first
+    for (const mod of modules) {
+      const agents = grouped.get(mod.id) || [];
+      if (agents.length > 0) {
+        groups.push({ moduleId: mod.id, moduleName: mod.name, agents });
+      }
+    }
+
+    // Uncategorized last
+    const uncategorized = grouped.get(null) || [];
+    if (uncategorized.length > 0) {
+      groups.push({ moduleId: null, moduleName: "Uncategorized", agents: uncategorized });
+    }
+
+    return groups;
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this agent?")) return;
     try {
@@ -210,37 +246,43 @@ export default function AgentsPage() {
               <h1 className="text-4xl font-serif font-bold text-stone-900 dark:text-stone-100">Mastra Agents</h1>
               <p className="text-stone-500 dark:text-stone-400 mt-2">Manage your autonomous agents and their capabilities.</p>
             </div>
-            <Dialog open={isFormOpen} onOpenChange={(open) => {
-              setIsFormOpen(open);
-              if (!open) setEditingAgent(null);
-            }}>
-              <DialogTrigger render={<Button className="bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-900/20" />}>
-                <Plus className="mr-2 h-4 w-4" /> Create Agent
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[56rem] max-h-[92vh] overflow-y-auto bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700">
-                <DialogHeader className="pb-4">
-                  <DialogTitle className="font-serif text-2xl">
-                    {editingAgent ? "Edit Agent" : "Create New Agent"}
-                  </DialogTitle>
-                  <DialogDescription>
-                    Configure your agent&apos;s personality, model, and capabilities.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="px-1">
-                  <AgentForm
-                    agent={editingAgent}
-                    availableAgents={agents.filter((a) => a.id !== editingAgent?.id)}
-                    availableSkills={availableSkills}
-                    availableTools={availableTools}
-                    availableMockTools={availableMockTools}
-                    onSuccess={handleFormSuccess}
-                    onCancel={() => setIsFormOpen(false)}
-                    onRefreshTools={refreshTools}
-                    isRefreshingTools={isRefreshingTools}
-                  />
-                </div>
-              </DialogContent>
-            </Dialog>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsModulesOpen(true)}>
+                Manage Modules
+              </Button>
+              <Dialog open={isFormOpen} onOpenChange={(open) => {
+                setIsFormOpen(open);
+                if (!open) setEditingAgent(null);
+              }}>
+                <DialogTrigger render={<Button className="bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-900/20" />}>
+                  <Plus className="mr-2 h-4 w-4" /> Create Agent
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[56rem] max-h-[92vh] overflow-y-auto bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700">
+                  <DialogHeader className="pb-4">
+                    <DialogTitle className="font-serif text-2xl">
+                      {editingAgent ? "Edit Agent" : "Create New Agent"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Configure your agent&apos;s personality, model, and capabilities.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="px-1">
+                    <AgentForm
+                      agent={editingAgent}
+                      availableAgents={agents.filter((a) => a.id !== editingAgent?.id)}
+                      availableSkills={availableSkills}
+                      availableTools={availableTools}
+                      availableMockTools={availableMockTools}
+                      onSuccess={handleFormSuccess}
+                      onCancel={() => setIsFormOpen(false)}
+                      onRefreshTools={refreshTools}
+                      isRefreshingTools={isRefreshingTools}
+                      availableModules={modules}
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
           {isLoading ? (
@@ -261,59 +303,76 @@ export default function AgentsPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {agents.map((agent) => (
-                <Card key={agent.id} className="group hover:shadow-xl transition-all duration-300 border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 overflow-hidden">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                        <Bot className="h-5 w-5 text-amber-600 dark:text-amber-500" />
-                      </div>
-                      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(agent)}>
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" onClick={() => handleDelete(agent.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <CardTitle className="mt-4 font-serif text-xl">{agent.name}</CardTitle>
-                    <CardDescription className="font-mono text-xs uppercase tracking-wider text-amber-600 dark:text-amber-500">
-                      {agent.model}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-stone-600 dark:text-stone-400 line-clamp-3 italic">
-                      {agent.description || agent.instruction}
-                    </p>
-                    <div className="flex flex-wrap gap-2 pt-2">
-                      {agent.skills?.length > 0 && (
-                        <Badge variant="secondary" className="bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-none">
-                          {agent.skills.length} Skills
-                        </Badge>
-                      )}
-                      {agent.tools?.filter((t) => t.toolType === "mastra").length > 0 && (
-                        <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-none">
-                          {agent.tools.filter((t) => t.toolType === "mastra").length} Tools
-                        </Badge>
-                      )}
-                      {agent.tools?.filter((t) => t.toolType === "mock").length > 0 && (
-                        <Badge variant="secondary" className="bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-none">
-                          {agent.tools.filter((t) => t.toolType === "mock").length} Mock Tools
-                        </Badge>
-                      )}
-                      {agent.subagents?.length > 0 && (
-                        <Badge variant="secondary" className="bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-none">
-                          {agent.subagents.length} Subagents
-                        </Badge>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+            <div className="space-y-8">
+              {groupAgentsByModule(agents, modules).map((group) => (
+                <div key={group.moduleId ?? "uncategorized"}>
+                  <h2 className="text-lg font-serif font-semibold text-stone-800 dark:text-stone-200 mb-4 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    {group.moduleName}
+                    <span className="text-sm font-normal text-stone-500">({group.agents.length})</span>
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {group.agents.map((agent) => (
+                      <Card key={agent.id} className="group hover:shadow-xl transition-all duration-300 border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-950 overflow-hidden">
+                        <CardHeader className="pb-3">
+                          <div className="flex justify-between items-start">
+                            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                              <Bot className="h-5 w-5 text-amber-600 dark:text-amber-500" />
+                            </div>
+                            <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(agent)}>
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" onClick={() => handleDelete(agent.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <CardTitle className="mt-4 font-serif text-xl">{agent.name}</CardTitle>
+                          <CardDescription className="font-mono text-xs uppercase tracking-wider text-amber-600 dark:text-amber-500">
+                            {agent.model}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <p className="text-sm text-stone-600 dark:text-stone-400 line-clamp-3 italic">
+                            {agent.description || agent.instruction}
+                          </p>
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            {agent.skills?.length > 0 && (
+                              <Badge variant="secondary" className="bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-none">
+                                {agent.skills.length} Skills
+                              </Badge>
+                            )}
+                            {agent.tools?.filter((t) => t.toolType === "mastra").length > 0 && (
+                              <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-none">
+                                {agent.tools.filter((t) => t.toolType === "mastra").length} Tools
+                              </Badge>
+                            )}
+                            {agent.tools?.filter((t) => t.toolType === "mock").length > 0 && (
+                              <Badge variant="secondary" className="bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-none">
+                                {agent.tools.filter((t) => t.toolType === "mock").length} Mock Tools
+                              </Badge>
+                            )}
+                            {agent.subagents?.length > 0 && (
+                              <Badge variant="secondary" className="bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-none">
+                                {agent.subagents.length} Subagents
+                              </Badge>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}
+          <ModuleManager
+            open={isModulesOpen}
+            onOpenChange={setIsModulesOpen}
+            modules={modules}
+            onModulesChange={fetchData}
+          />
         </div>
       </main>
     </div>
