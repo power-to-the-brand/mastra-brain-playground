@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -46,7 +47,7 @@ function MockToolsPageContent() {
   const [mockToolToDelete, setMockToolToDelete] = useState<MockTool | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const loadMockTools = async () => {
+  const loadMockTools = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch("/api/mock-tools");
@@ -65,12 +66,11 @@ function MockToolsPageContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast]);
 
   useEffect(() => {
     loadMockTools();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadMockTools]);
 
   const handleCreate = () => {
     setSelectedMockTool(null);
@@ -140,7 +140,7 @@ function MockToolsPageContent() {
     (mt) =>
       mt.toolId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       mt.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      mt.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+      (mt.description?.toLowerCase() ?? "").includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -172,10 +172,10 @@ function MockToolsPageContent() {
           <div className="flex items-center gap-2 max-w-sm">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <input
+              <Input
                 type="search"
                 placeholder="Search mock tools..."
-                className="pl-8 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                className="pl-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
