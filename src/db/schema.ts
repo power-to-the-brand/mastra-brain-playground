@@ -70,6 +70,19 @@ export const references = pgTable("references", {
 export type Reference = typeof references.$inferSelect;
 export type NewReference = typeof references.$inferInsert;
 
+// ── Modules ────────────────────────────────────────────────────────────────────
+
+export const modules = pgTable("modules", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type Module = typeof modules.$inferSelect;
+export type NewModule = typeof modules.$inferInsert;
+
 // ── Agents ───────────────────────────────────────────────────────────────────
 
 export const agents = pgTable("agents", {
@@ -78,6 +91,7 @@ export const agents = pgTable("agents", {
   description: text("description"),
   model: varchar("model", { length: 255 }).notNull(),
   instruction: text("instruction").notNull(),
+  moduleId: uuid("module_id").references(() => modules.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
