@@ -14,6 +14,7 @@ import {
   Save,
   Wrench,
   FileText,
+  Cloud,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavItem } from "@/components/ui/nav-item";
@@ -48,6 +49,11 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         href: "/skills",
         label: "Skills",
         icon: <Settings size={18} strokeWidth={2} />,
+      },
+      {
+        href: "/s3-workspace",
+        label: "S3 Workspace",
+        icon: <Cloud size={18} strokeWidth={2} />,
       }
     ];
 
