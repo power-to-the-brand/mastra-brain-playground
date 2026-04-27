@@ -22,14 +22,12 @@ import {
   MessageSquare,
   Database,
   MessageCircle,
-  Play,
   Pencil,
   Copy,
 } from "lucide-react";
 import type { Scenario } from "@/db/schema";
 import { ToastProvider, useToast } from "@/components/ui/toast-provider";
 import { NewScenarioDialog } from "@/components/new-scenario-dialog";
-import { ScenarioResultsDialog } from "@/components/scenario-results-dialog";
 import { normalizeSupplierConversations, countSupplierMessages } from "@/lib/supplier-conversations";
 
 interface ScenarioWithMeta extends Scenario {
@@ -52,9 +50,6 @@ function ScenariosPageContent() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
-  const [resultsDialogOpen, setResultsDialogOpen] = useState(false);
-  const [selectedScenarioForResults, setSelectedScenarioForResults] =
-    useState<ScenarioWithMeta | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [scenarioToEdit, setScenarioToEdit] =
     useState<ScenarioWithMeta | null>(null);
@@ -108,23 +103,6 @@ function ScenariosPageContent() {
     setEditDialogOpen(true);
   };
 
-
-  const handleLoadIntoPlayground = (scenario: ScenarioWithMeta) => {
-    sessionStorage.setItem(
-      "scenario_conversation",
-      JSON.stringify(scenario.conversationMessages),
-    );
-    sessionStorage.setItem("scenario_sr_data", JSON.stringify(scenario.srData));
-    sessionStorage.setItem(
-      "scenario_supplier_chat",
-      JSON.stringify(scenario.pastSupplierConversation),
-    );
-    sessionStorage.setItem("scenario_id", scenario.id);
-    sessionStorage.setItem("scenario_name", scenario.name);
-
-    addToast(`Loading "${scenario.name}" into playground...`, "success");
-    window.location.href = "/";
-  };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -294,12 +272,6 @@ function ScenariosPageContent() {
                       <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80">
                         Created
                       </TableHead>
-                      <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80 text-center">
-                        Playground
-                      </TableHead>
-                      <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80 text-center">
-                        Results
-                      </TableHead>
                       <TableHead className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80 text-right">
                         Actions
                       </TableHead>
@@ -334,33 +306,6 @@ function ScenariosPageContent() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                           {new Date(scenario.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleLoadIntoPlayground(scenario);
-                            }}
-                            className="text-[10px] font-bold uppercase tracking-wider h-8 px-3 gap-2"
-                          >
-                            <Play size={12} fill="currentColor" />
-                            Load
-                          </Button>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedScenarioForResults(scenario);
-                              setResultsDialogOpen(true);
-                            }}
-                            className="text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary hover:bg-primary/10 h-8 px-3"
-                          >
-                            View Results
-                          </Button>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
@@ -492,12 +437,6 @@ function ScenariosPageContent() {
         }}
       />
 
-      <ScenarioResultsDialog
-        open={resultsDialogOpen}
-        onOpenChange={setResultsDialogOpen}
-        scenarioId={selectedScenarioForResults?.id || null}
-        scenarioName={selectedScenarioForResults?.name || null}
-      />
     </>
   );
 }
