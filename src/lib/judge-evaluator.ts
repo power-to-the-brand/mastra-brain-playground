@@ -163,7 +163,7 @@ export function parseJudgeOutput(responseJson: unknown): ParsedJudgeOutput {
           weightedScore: Number(ds.weightedScore ?? 0),
           reasoning: String(ds.reasoning ?? ""),
         })),
-        summary: String(parsed.summary ?? ""),
+        summary: "",
       };
     }
 
