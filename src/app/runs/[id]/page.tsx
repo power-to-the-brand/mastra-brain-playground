@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Activity, ChevronLeft, Clock, Cpu, Zap, Coins, Hash, Brain, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { JudgePanel } from "@/components/runs/judge-panel";
 
 export default function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = React.use(params);
@@ -177,12 +178,13 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
           </div>
 
           {/* Trace Sidebar */}
-          <aside className="w-80 border-l border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50 flex flex-col">
-            <div className="p-4 border-b border-stone-200 dark:border-stone-800 flex items-center gap-2">
-              <Activity className="h-4 w-4 text-amber-500" />
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500 dark:text-stone-400">Execution Trace</h2>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <aside className="w-80 border-l border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-4 border-b border-stone-200 dark:border-stone-800 flex items-center gap-2">
+                <Activity className="h-4 w-4 text-amber-500" />
+                <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500 dark:text-stone-400">Execution Trace</h2>
+              </div>
+              <div className="p-4 space-y-4">
               {run.trace && run.trace.length > 0 ? (
                 run.trace.map((item: any, idx: number) => (
                   <div key={idx} className="relative pl-6 pb-4 border-l border-stone-200 dark:border-stone-800 last:border-0">
@@ -255,6 +257,12 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
                   <p className="text-[10px] uppercase font-bold tracking-widest">No trace data yet</p>
                 </div>
               )}
+            </div>
+
+              {/* Judge Panel */}
+              <div className="border-t border-stone-200 dark:border-stone-800 p-4">
+                <JudgePanel runId={run.id} runStatus={run.status} />
+              </div>
             </div>
           </aside>
         </div>
