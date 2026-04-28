@@ -15,6 +15,7 @@ import {
   Wrench,
   FileText,
   Cloud,
+  Scale,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavItem } from "@/components/ui/nav-item";
@@ -49,6 +50,11 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         href: "/skills",
         label: "Skills",
         icon: <Settings size={18} strokeWidth={2} />,
+      },
+      {
+        href: "/rubrics",
+        label: "Rubrics",
+        icon: <Scale size={18} strokeWidth={2} />,
       },
       {
         href: "/mock-tools",

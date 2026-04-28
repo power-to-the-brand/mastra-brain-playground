@@ -91,7 +91,9 @@ export const agents = pgTable("agents", {
   description: text("description"),
   model: varchar("model", { length: 255 }).notNull(),
   instruction: text("instruction").notNull(),
-  moduleId: uuid("module_id").references(() => modules.id, { onDelete: "set null" }),
+  moduleId: uuid("module_id").references(() => modules.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -244,3 +246,29 @@ export const agentToolsRelations = relations(agentTools, ({ one }) => ({
     references: [agents.id],
   }),
 }));
+
+// ── Rubrics ──────────────────────────────────────────────────────────────────
+
+export const rubrics = pgTable("rubrics", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  dimensions: jsonb("dimensions")
+    .$type<
+      Array<{
+        name: string;
+        description: string;
+        weight: number;
+        scoringCriteria: string;
+        scale: { min: number; max: number };
+      }>
+    >()
+    .notNull()
+    .default([]),
+  passingThreshold: jsonb("passing_threshold"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type Rubric = typeof rubrics.$inferSelect;
+export type NewRubric = typeof rubrics.$inferInsert;
