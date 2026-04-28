@@ -5,7 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Play } from "lucide-react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
+import { JudgeAssignment } from "@/components/runs/judge-assignment";
 import { useRouter } from "next/navigation";
+
+interface AssignedJudge {
+  judgeId: string;
+  judgeName: string;
+  judgeMode: string;
+  autoEvaluate: boolean;
+}
 
 interface RunSetupProps {
   onRunCreated?: () => void;
@@ -17,6 +25,7 @@ export function RunSetup({ onRunCreated }: RunSetupProps) {
   const [selectedScenarioId, setSelectedScenarioId] = React.useState("");
   const [selectedAgentId, setSelectedAgentId] = React.useState("");
   const [openingMessage, setOpeningMessage] = React.useState("");
+  const [judgeAssignments, setJudgeAssignments] = React.useState<AssignedJudge[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isSearchingAgents, setIsSearchingAgents] = React.useState(false);
   const [isSearchingScenarios, setIsSearchingScenarios] = React.useState(false);
@@ -66,6 +75,10 @@ export function RunSetup({ onRunCreated }: RunSetupProps) {
           agentId: selectedAgentId,
           scenarioId: selectedScenarioId,
           openingMessageOverride: openingMessage,
+          judgeAssignments: judgeAssignments.map((a) => ({
+            judgeId: a.judgeId,
+            autoEvaluate: a.autoEvaluate,
+          })),
         }),
       });
 
@@ -120,6 +133,8 @@ export function RunSetup({ onRunCreated }: RunSetupProps) {
           onChange={(e) => setOpeningMessage(e.target.value)}
         />
       </div>
+
+      <JudgeAssignment onAssign={setJudgeAssignments} />
 
       <div className="flex justify-between items-center pt-4">
         <p className="text-[10px] text-stone-400 italic">⌘↵ to launch · esc to close</p>

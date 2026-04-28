@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { runs, agents, scenarios } from "@/db/schema";
+import { runs, agents, scenarios, runJudges } from "@/db/schema";
 import { desc, eq, count } from "drizzle-orm";
 
 // Helper to build pagination
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { agentId, scenarioId, openingMessageOverride } = body;
+    const { agentId, scenarioId, openingMessageOverride, judgeAssignments } = body;
 
     if (!agentId || !scenarioId) {
       return NextResponse.json({ error: "agentId and scenarioId are required" }, { status: 400 });
@@ -101,6 +101,17 @@ export async function POST(request: NextRequest) {
       openingMessageOverride,
       status: "pending",
     }).returning();
+
+    // Create judge assignments if provided
+    if (judgeAssignments && Array.isArray(judgeAssignments) && judgeAssignments.length > 0) {
+      const assignmentRows = judgeAssignments.map((a: { judgeId: string; autoEvaluate?: boolean }) => ({
+        runId: newRun.id,
+        judgeId: a.judgeId,
+        autoEvaluate: a.autoEvaluate ?? true,
+        status: "pending",
+      }));
+      await db.insert(runJudges).values(assignmentRows);
+    }
 
     return NextResponse.json(newRun);
   } catch (error) {
