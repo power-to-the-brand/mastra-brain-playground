@@ -237,6 +237,11 @@ export function JudgePanel({ runId, runStatus }: JudgePanelProps) {
                     Evaluate
                   </Button>
                 )}
+                {runStatus !== "completed" && assignment.status === "pending" && (
+                  <span className="text-[9px] text-stone-400 italic">
+                    Complete run to evaluate
+                  </span>
+                )}
 
                 <div className="flex-1" />
 

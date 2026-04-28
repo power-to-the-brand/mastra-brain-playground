@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { ChatView } from "@/components/runs/chat-view";
 import { Badge } from "@/components/ui/badge";
-import { Activity, ChevronLeft, Clock, Cpu, Zap, Coins, Hash, Brain, AlertTriangle } from "lucide-react";
+import { Activity, ChevronLeft, Clock, Cpu, Zap, Coins, Hash, Brain, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { JudgePanel } from "@/components/runs/judge-panel";
@@ -15,6 +15,7 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [run, setRun] = React.useState<any>(null);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isMarkingComplete, setIsMarkingComplete] = React.useState(false);
 
   React.useEffect(() => {
     const fetchRun = async () => {
@@ -46,6 +47,25 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
 
     return () => clearInterval(interval);
   }, [id, run?.status]);
+
+  const handleMarkComplete = async () => {
+    if (!run || isMarkingComplete) return;
+    setIsMarkingComplete(true);
+    try {
+      const res = await fetch(`/api/runs/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' }),
+      });
+      if (res.ok) {
+        setRun((prev: any) => ({ ...prev, status: 'completed' }));
+      }
+    } catch (error) {
+      console.error('Failed to mark run as complete:', error);
+    } finally {
+      setIsMarkingComplete(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -94,6 +114,22 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
                 )}>
                   ● {run.status}
                 </Badge>
+                {(run.status === 'pending' || run.status === 'running') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-[10px] gap-1 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                    disabled={isMarkingComplete}
+                    onClick={handleMarkComplete}
+                  >
+                    {isMarkingComplete ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-3 w-3" />
+                    )}
+                    Mark Complete
+                  </Button>
+                )}
               </div>
               <p className="text-[10px] text-stone-500 dark:text-stone-400 uppercase tracking-widest font-bold">
                 Agent: {run.agentId?.slice(0, 8)} • Scenario: {run.scenarioId?.slice(0, 8)}

@@ -289,10 +289,12 @@ export async function evaluateRunJudge(runJudgeId: string): Promise<void> {
     throw new Error(`Run not found: ${runJudge.runId}`);
   }
 
-  // ── 3. Validate the run is completed ──────────────────────────────────────
+  // ── 3. Validate the run has messages ──────────────────────────────────────
+  // Allow evaluation even if run isn't "completed" — the user may want to evaluate
+  // a run in progress. We just log a warning if the status isn't "completed".
   if (run.status !== "completed") {
-    throw new Error(
-      `Cannot evaluate run that is not completed (status: ${run.status})`,
+    console.warn(
+      `Evaluating run that is not completed (status: ${run.status}). Proceeding anyway.`,
     );
   }
 

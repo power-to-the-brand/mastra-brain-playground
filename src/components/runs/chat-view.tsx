@@ -19,6 +19,7 @@ interface ChatViewProps {
 
 function MessageSaver({ runId, runtime }: { runId: string; runtime: AssistantRuntime }) {
   const savedLastMessageId = useRef<string | null>(null);
+  const hasMarkedComplete = useRef(false);
 
   useEffect(() => {
     const saveIfComplete = () => {
@@ -73,6 +74,19 @@ function MessageSaver({ runId, runtime }: { runId: string; runtime: AssistantRun
       }).catch((err) => {
         console.error("Failed to save assistant message:", err);
       });
+
+      // Auto-mark run as completed when the last assistant message finishes
+      // This triggers auto-evaluation for any assigned judges
+      if (!hasMarkedComplete.current) {
+        hasMarkedComplete.current = true;
+        fetch(`/api/runs/${runId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "completed" }),
+        }).catch((err) => {
+          console.error("Failed to mark run as completed:", err);
+        });
+      }
     };
 
     const unsubscribe = runtime.thread.subscribe(saveIfComplete);
