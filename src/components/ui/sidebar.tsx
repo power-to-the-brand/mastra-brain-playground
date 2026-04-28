@@ -80,6 +80,11 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         label: "Judges",
         icon: <Gavel size={18} strokeWidth={2} />,
       },
+      {
+        href: "/judge-results",
+        label: "Judge Results",
+        icon: <FileText size={18} strokeWidth={2} />,
+      },
     ];
 
     return (
