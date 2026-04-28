@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Trash2, Plus, GripVertical } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Loader2, Trash2, Plus, GripVertical, X } from "lucide-react";
 import type { Rubric } from "@/db";
 
 interface Dimension {
@@ -53,14 +54,14 @@ function parseDimensions(rubric: Rubric | null): Dimension[] {
 function buildInitialState(rubric: Rubric | null): {
   name: string;
   description: string;
-  passingThreshold: string;
+  passingThreshold: number | null;
   dimensions: Dimension[];
 } {
   if (!rubric) {
     return {
       name: "",
       description: "",
-      passingThreshold: "",
+      passingThreshold: null,
       dimensions: [],
     };
   }
@@ -68,7 +69,7 @@ function buildInitialState(rubric: Rubric | null): {
     name: rubric.name,
     description: rubric.description ?? "",
     passingThreshold:
-      rubric.passingThreshold != null ? String(rubric.passingThreshold) : "",
+      rubric.passingThreshold != null ? Number(rubric.passingThreshold) : null,
     dimensions: parseDimensions(rubric),
   };
 }
@@ -145,10 +146,7 @@ function InnerForm({
       id: rubric?.id,
       name: name.trim(),
       description: description.trim() || null,
-      passingThreshold:
-        passingThreshold.trim() === ""
-          ? null
-          : Number(passingThreshold.trim()),
+      passingThreshold,
       dimensions: dimensions.map((d) => ({
         name: d.name.trim(),
         description: d.description.trim(),
@@ -210,16 +208,45 @@ function InnerForm({
         </div>
 
         {/* Passing Threshold */}
-        <div className="space-y-2">
-          <Label htmlFor="rubric-passing-threshold">Passing Threshold</Label>
-          <Input
-            id="rubric-passing-threshold"
-            type="number"
-            step="any"
-            value={passingThreshold}
-            onChange={(e) => setPassingThreshold(e.target.value)}
-            placeholder="Optional weighted average threshold to pass"
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label>Passing Threshold</Label>
+            <div className="flex items-center gap-1.5">
+              {passingThreshold != null && (
+                <>
+                  <span className="text-sm font-mono font-medium tabular-nums">
+                    {passingThreshold}%
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 rounded-full hover:bg-muted"
+                    onClick={() => setPassingThreshold(null)}
+                  >
+                    <X size={10} />
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+          <Slider
+            value={passingThreshold != null ? [passingThreshold] : [60]}
+            onValueChange={([v]) => setPassingThreshold(v)}
+            min={0}
+            max={100}
+            step={5}
+            className={passingThreshold == null ? "opacity-40" : ""}
           />
+          <div className="flex justify-between text-[10px] text-muted-foreground">
+            <span>0%</span>
+            <span>100%</span>
+          </div>
+          {passingThreshold == null && (
+            <p className="text-xs text-muted-foreground italic">
+              Slide to set a threshold, or leave unset for no minimum.
+            </p>
+          )}
         </div>
 
         {/* Dimensions */}

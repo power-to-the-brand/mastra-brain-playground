@@ -199,7 +199,7 @@ function RubricDetailContent({ id }: { id: string }) {
             {rubric.passingThreshold != null && (
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <Target className="h-3.5 w-3.5" />
-                <span>Passing threshold: {String(rubric.passingThreshold)}</span>
+                <span>Passing threshold: {String(rubric.passingThreshold)}%</span>
               </div>
             )}
           </div>
