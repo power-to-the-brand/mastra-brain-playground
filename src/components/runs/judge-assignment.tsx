@@ -200,17 +200,19 @@ export function JudgeAssignment({ runId, onAssign }: JudgeAssignmentProps) {
                 <button
                   type="button"
                   onClick={() => handleToggleAutoEvaluate(assignment.judgeId)}
-                  className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200 transition-colors"
-                  title={assignment.autoEvaluate ? "Auto-evaluate: ON" : "Auto-evaluate: OFF"}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                    assignment.autoEvaluate
+                      ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50"
+                      : "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700"
+                  }`}
+                  title={assignment.autoEvaluate ? "Auto-evaluate: ON — will run when run completes" : "Auto-evaluate: OFF — must trigger manually"}
                 >
                   {assignment.autoEvaluate ? (
-                    <ToggleRight className="h-4 w-4 text-amber-600" />
+                    <ToggleRight className="h-3.5 w-3.5" />
                   ) : (
-                    <ToggleLeft className="h-4 w-4 text-stone-400" />
+                    <ToggleLeft className="h-3.5 w-3.5" />
                   )}
-                  <span className="hidden sm:inline">
-                    {assignment.autoEvaluate ? "Auto" : "Manual"}
-                  </span>
+                  {assignment.autoEvaluate ? "Auto" : "Manual"}
                 </button>
 
                 {/* Remove button */}

@@ -3,7 +3,8 @@
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Gavel, Loader2, Play, RefreshCw, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Gavel, Loader2, Play, Plus, RefreshCw, ToggleLeft, ToggleRight, Trash2, X } from "lucide-react";
 
 interface JudgeAssignment {
   id: string;
@@ -38,6 +39,11 @@ export function JudgePanel({ runId, runStatus }: JudgePanelProps) {
   const [assignments, setAssignments] = React.useState<JudgeAssignment[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isEvaluating, setIsEvaluating] = React.useState<string | null>(null);
+  const [isAddingJudge, setIsAddingJudge] = React.useState(false);
+  const [judgeSearchResults, setJudgeSearchResults] = React.useState<Array<{ id: string; name: string; mode: string }>>([]);
+  const [isSearchingJudges, setIsSearchingJudges] = React.useState(false);
+  const [selectedNewJudgeId, setSelectedNewJudgeId] = React.useState("");
+  const [isAdding, setIsAdding] = React.useState(false);
 
   const fetchAssignments = React.useCallback(async () => {
     try {
@@ -56,6 +62,44 @@ export function JudgePanel({ runId, runStatus }: JudgePanelProps) {
   React.useEffect(() => {
     fetchAssignments();
   }, [fetchAssignments]);
+
+  const searchJudges = async (query: string) => {
+    setIsSearchingJudges(true);
+    try {
+      const res = await fetch(`/api/judges/search?q=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setJudgeSearchResults(data);
+      }
+    } catch (error) {
+      console.error("Judge search failed:", error);
+    } finally {
+      setIsSearchingJudges(false);
+    }
+  };
+
+  const handleAddJudge = async () => {
+    if (!selectedNewJudgeId) return;
+    setIsAdding(true);
+    try {
+      const res = await fetch(`/api/runs/${runId}/judges`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assignments: [{ judgeId: selectedNewJudgeId, autoEvaluate: true }],
+        }),
+      });
+      if (res.ok) {
+        setSelectedNewJudgeId("");
+        setIsAddingJudge(false);
+        await fetchAssignments();
+      }
+    } catch (error) {
+      console.error("Failed to add judge:", error);
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   const handleToggleAutoEvaluate = async (assignmentId: string, currentValue: boolean) => {
     try {
@@ -145,15 +189,66 @@ export function JudgePanel({ runId, runStatus }: JudgePanelProps) {
             Judges
           </h3>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-stone-400 hover:text-stone-600"
-          onClick={fetchAssignments}
-        >
-          <RefreshCw className="h-3 w-3" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-stone-400 hover:text-amber-600"
+            onClick={() => {
+              setIsAddingJudge(!isAddingJudge);
+              if (!isAddingJudge) searchJudges("");
+            }}
+            title="Add judge"
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-stone-400 hover:text-stone-600"
+            onClick={fetchAssignments}
+            title="Refresh"
+          >
+            <RefreshCw className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
+
+      {/* Add judge inline selector */}
+      {isAddingJudge && (
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <SearchableSelect
+              label="Judge"
+              placeholder="Search judges..."
+              options={judgeSearchResults
+                .filter((j) => !assignments.some((a) => a.judgeId === j.id))
+                .map((j) => ({ id: j.id, name: j.name, description: j.mode }))}
+              value={selectedNewJudgeId}
+              onValueChange={setSelectedNewJudgeId}
+              onSearch={searchJudges}
+              isLoading={isSearchingJudges}
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400"
+            disabled={!selectedNewJudgeId || isAdding}
+            onClick={handleAddJudge}
+          >
+            {isAdding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-stone-400"
+            onClick={() => setIsAddingJudge(false)}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
 
       {assignments.length === 0 ? (
         <p className="text-[10px] text-stone-400 italic py-4 text-center">
@@ -210,22 +305,25 @@ export function JudgePanel({ runId, runStatus }: JudgePanelProps) {
                 <button
                   type="button"
                   onClick={() => handleToggleAutoEvaluate(assignment.id, assignment.autoEvaluate)}
-                  className="flex items-center gap-1 text-[10px] text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 transition-colors"
-                  title={assignment.autoEvaluate ? "Auto-evaluate: ON" : "Auto-evaluate: OFF"}
+                  className="flex items-center gap-1.5 text-[10px] text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 transition-colors"
+                  title={assignment.autoEvaluate ? "Auto-evaluate: ON — will run when run completes" : "Auto-evaluate: OFF — must trigger manually"}
                 >
                   {assignment.autoEvaluate ? (
-                    <ToggleRight className="h-3.5 w-3.5 text-amber-500" />
+                    <ToggleRight className="h-4 w-4 text-amber-500" />
                   ) : (
-                    <ToggleLeft className="h-3.5 w-3.5" />
+                    <ToggleLeft className="h-4 w-4 text-stone-400" />
                   )}
-                  Auto
+                  <span className="font-medium">
+                    {assignment.autoEvaluate ? "Auto" : "Manual"}
+                  </span>
                 </button>
 
-                {runStatus === "completed" && assignment.status !== "running" && assignment.status !== "queued" && (
+                {/* Evaluate button — always visible for pending/failed assignments */}
+                {(assignment.status === "pending" || assignment.status === "failed") && (
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="h-6 text-[10px] gap-1 text-amber-600 hover:text-amber-700"
+                    className="h-6 text-[10px] gap-1 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                     disabled={isEvaluating === assignment.id}
                     onClick={() => handleTriggerEvaluation(assignment.id, assignment.judgeId)}
                   >
@@ -237,10 +335,17 @@ export function JudgePanel({ runId, runStatus }: JudgePanelProps) {
                     Evaluate
                   </Button>
                 )}
-                {runStatus !== "completed" && assignment.status === "pending" && (
-                  <span className="text-[9px] text-stone-400 italic">
-                    Complete run to evaluate
-                  </span>
+                {assignment.status === "running" && (
+                  <div className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Evaluating...
+                  </div>
+                )}
+                {assignment.status === "queued" && (
+                  <span className="text-[10px] text-blue-500 font-medium">Queued</span>
+                )}
+                {assignment.status === "completed" && (
+                  <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">✓ Done</span>
                 )}
 
                 <div className="flex-1" />

@@ -44,11 +44,39 @@ export async function POST(
   try {
     const { id: runId } = await params;
     const body = await request.json();
-    const { judgeIds, autoEvaluate = false } = body;
 
-    if (!Array.isArray(judgeIds) || judgeIds.length === 0) {
+    // Support two formats:
+    // 1. { judgeIds: string[], autoEvaluate: boolean } — bulk assign with same autoEvaluate
+    // 2. { assignments: { judgeId: string, autoEvaluate: boolean }[] } — per-judge autoEvaluate
+    let assignmentsToCreate: Array<{ runId: string; judgeId: string; autoEvaluate: boolean; status: string }> = [];
+
+    if (body.assignments && Array.isArray(body.assignments)) {
+      // Per-judge format from the UI
+      assignmentsToCreate = body.assignments.map((a: { judgeId: string; autoEvaluate?: boolean }) => ({
+        runId,
+        judgeId: a.judgeId,
+        autoEvaluate: a.autoEvaluate ?? true,
+        status: "pending" as const,
+      }));
+    } else if (body.judgeIds && Array.isArray(body.judgeIds)) {
+      // Bulk format
+      const autoEvaluate = body.autoEvaluate ?? true;
+      assignmentsToCreate = body.judgeIds.map((judgeId: string) => ({
+        runId,
+        judgeId,
+        autoEvaluate,
+        status: "pending" as const,
+      }));
+    } else {
       return NextResponse.json(
-        { error: "judgeIds array is required" },
+        { error: "judgeIds array or assignments array is required" },
+        { status: 400 },
+      );
+    }
+
+    if (assignmentsToCreate.length === 0) {
+      return NextResponse.json(
+        { error: "No judges to assign" },
         { status: 400 },
       );
     }
@@ -59,14 +87,9 @@ export async function POST(
     });
     const existingJudgeIds = new Set(existing.map((e) => e.judgeId));
 
-    const newAssignments = judgeIds
-      .filter((jid: string) => !existingJudgeIds.has(jid))
-      .map((judgeId: string) => ({
-        runId,
-        judgeId,
-        autoEvaluate,
-        status: "pending" as const,
-      }));
+    const newAssignments = assignmentsToCreate.filter(
+      (a) => !existingJudgeIds.has(a.judgeId),
+    );
 
     let created: any[] = [];
     if (newAssignments.length > 0) {
