@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Check, RefreshCw } from "lucide-react";
 import { MockToolBuilder, MockToolData } from "@/components/agents/mock-tool-builder";
+import { GEMINI_MODELS, DEFAULT_GEMINI_MODEL } from "@/lib/models";
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
@@ -49,12 +50,6 @@ interface AgentFormProps {
   isRefreshingTools?: boolean;
 }
 
-const MODELS = [
-  { label: "Gemini 3.1 Flash Lite Preview", value: "google/gemini-3.1-flash-lite-preview" },
-  { label: "Gemini 3 Flash Preview", value: "google/gemini-3-flash-preview" },
-  { label: "Gemini 2.0 Flash", value: "google/gemini-2.0-flash" },
-];
-
 export function AgentForm({
   agent,
   availableAgents,
@@ -69,7 +64,7 @@ export function AgentForm({
 }: AgentFormProps) {
   const [name, setName] = useState(agent?.name || "");
   const [description, setDescription] = useState(agent?.description || "");
-  const [model, setModel] = useState(agent?.model || MODELS[0].value);
+  const [model, setModel] = useState(agent?.model || DEFAULT_GEMINI_MODEL);
   const [instruction, setInstruction] = useState(agent?.instruction || "");
   const [selectedSubagentIds, setSelectedSubagentIds] = useState<string[]>(
     Array.isArray(agent?.subagents) ? agent.subagents.map((s) => s.subagentId) : []
@@ -99,7 +94,7 @@ export function AgentForm({
     if (agent) {
       setName(agent.name || "");
       setDescription(agent.description || "");
-      setModel(agent.model || MODELS[0].value);
+      setModel(agent.model || DEFAULT_GEMINI_MODEL);
       setInstruction(agent.instruction || "");
       setSelectedModuleId(agent.moduleId ?? null);
       setSelectedSubagentIds(
@@ -143,14 +138,14 @@ export function AgentForm({
             ? JSON.stringify(t.mockFixedResponse, null, 2)
             : "",
           mockSimulationPrompt: t.mockSimulationPrompt || "",
-          mockSimulationModel: t.mockSimulationModel || MODELS[0].value,
+          mockSimulationModel: t.mockSimulationModel || DEFAULT_GEMINI_MODEL,
         }))
       );
     } else {
       // Reset all state for creating a new agent
       setName("");
       setDescription("");
-      setModel(MODELS[0].value);
+      setModel(DEFAULT_GEMINI_MODEL);
       setInstruction("");
       setSelectedSubagentIds([]);
       setSelectedSkillIds([]);
@@ -301,7 +296,7 @@ export function AgentForm({
                 ? JSON.stringify(tool.mockFixedResponse, null, 2)
                 : "",
               mockSimulationPrompt: tool.mockSimulationPrompt || "",
-              mockSimulationModel: tool.mockSimulationModel || MODELS[0].value,
+              mockSimulationModel: tool.mockSimulationModel || DEFAULT_GEMINI_MODEL,
             },
           ];
         });
@@ -344,7 +339,7 @@ export function AgentForm({
           onChange={(e) => setModel(e.target.value)}
           className="w-full px-3 py-2 bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
         >
-          {MODELS.map((m) => (
+          {GEMINI_MODELS.map((m) => (
             <option key={m.value} value={m.value}>{m.label}</option>
           ))}
         </select>
@@ -472,7 +467,7 @@ export function AgentForm({
         <MockToolBuilder
           tools={builderTools}
           onChange={setBuilderTools}
-          availableModels={MODELS}
+          availableModels={GEMINI_MODELS}
         />
       </div>
 

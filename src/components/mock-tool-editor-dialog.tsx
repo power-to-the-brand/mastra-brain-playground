@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Loader2, Trash2 } from "lucide-react";
 import type { MockTool } from "@/db";
+import { GEMINI_MODELS, DEFAULT_GEMINI_MODEL } from "@/lib/models";
 
 const PARAM_TYPES = ["string", "number", "boolean", "array", "object"] as const;
 type ParamType = (typeof PARAM_TYPES)[number];
@@ -36,12 +37,6 @@ function normalizeToolId(name: string): string {
     .replace(/^-|-$/g, "")
     .replace(/-+/g, "-");
 }
-
-const MODELS = [
-  { label: "Gemini 3.1 Flash Lite Preview", value: "google/gemini-3.1-flash-lite-preview" },
-  { label: "Gemini 3 Flash Preview", value: "google/gemini-3-flash-preview" },
-  { label: "Gemini 2.0 Flash", value: "google/gemini-2.0-flash" },
-];
 
 interface MockToolEditorDialogProps {
   open: boolean;
@@ -68,7 +63,7 @@ function buildInitialState(mockTool: MockTool | null): {
       mockMode: "fixed_response",
       mockFixedResponse: "",
       mockSimulationPrompt: "",
-      mockSimulationModel: MODELS[0]?.value ?? "",
+      mockSimulationModel: DEFAULT_GEMINI_MODEL,
     };
   }
   const schema = Array.isArray(mockTool.inputSchema)
@@ -89,7 +84,7 @@ function buildInitialState(mockTool: MockTool | null): {
       ? JSON.stringify(mockTool.mockFixedResponse, null, 2)
       : "",
     mockSimulationPrompt: mockTool.mockSimulationPrompt ?? "",
-    mockSimulationModel: mockTool.mockSimulationModel ?? MODELS[0]?.value ?? "",
+    mockSimulationModel: mockTool.mockSimulationModel ?? DEFAULT_GEMINI_MODEL,
   };
 }
 
@@ -385,7 +380,7 @@ function InnerForm({
                   onChange={(e) => setMockSimulationModel(e.target.value)}
                   className="w-full px-3 py-2 bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-sm"
                 >
-                  {MODELS.map((m) => (
+                  {GEMINI_MODELS.map((m) => (
                     <option key={m.value} value={m.value}>
                       {m.label}
                     </option>

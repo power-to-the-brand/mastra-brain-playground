@@ -16,6 +16,7 @@ import {
   FileText,
   Cloud,
   Scale,
+  Gavel,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavItem } from "@/components/ui/nav-item";
@@ -73,6 +74,11 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
         href: "/runs",
         label: "Runs",
         icon: <MessageCircle size={18} strokeWidth={2} />,
+      },
+      {
+        href: "/judges",
+        label: "Judges",
+        icon: <Gavel size={18} strokeWidth={2} />,
       },
     ];
 

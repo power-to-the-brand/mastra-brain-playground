@@ -6,6 +6,7 @@ import {
   timestamp,
   text,
   primaryKey,
+  numeric,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -272,3 +273,40 @@ export const rubrics = pgTable("rubrics", {
 
 export type Rubric = typeof rubrics.$inferSelect;
 export type NewRubric = typeof rubrics.$inferInsert;
+
+export const rubricsRelations = relations(rubrics, ({ many }) => ({
+  judges: many(judges),
+}));
+
+// ── Judges ───────────────────────────────────────────────────────────────────
+
+export const judgeModes = ["run_level", "turn_level", "both"] as const;
+export type JudgeMode = (typeof judgeModes)[number];
+
+export const judges = pgTable("judges", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  model: varchar("model", { length: 255 }).notNull(),
+  systemPrompt: text("system_prompt"),
+  temperature: numeric("temperature", { precision: 3, scale: 2 }).default("0.7"),
+  rubricId: uuid("rubric_id")
+    .references(() => rubrics.id, { onDelete: "restrict" })
+    .notNull(),
+  mode: varchar("mode", { length: 20 })
+    .notNull()
+    .default("run_level")
+    .$type<JudgeMode>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type Judge = typeof judges.$inferSelect;
+export type NewJudge = typeof judges.$inferInsert;
+
+export const judgesRelations = relations(judges, ({ one }) => ({
+  rubric: one(rubrics, {
+    fields: [judges.rubricId],
+    references: [rubrics.id],
+  }),
+}));

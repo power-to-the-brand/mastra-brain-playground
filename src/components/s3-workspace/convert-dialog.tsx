@@ -11,11 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-
-const MODELS = [
-  { label: "Gemini 3.1 Flash Lite Preview", value: "google/gemini-3.1-flash-lite-preview" },
-  { label: "Gemini 3 Flash Preview", value: "google/gemini-3-flash-preview" },
-];
+import { GEMINI_MODELS, DEFAULT_GEMINI_MODEL } from "@/lib/models";
 
 interface ConvertDialogProps {
   open: boolean;
@@ -32,7 +28,7 @@ export function ConvertDialog({
   onConfirm,
   isLoading,
 }: ConvertDialogProps) {
-  const [model, setModel] = useState(MODELS[0].value);
+  const [model, setModel] = useState(DEFAULT_GEMINI_MODEL);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -71,7 +67,7 @@ export function ConvertDialog({
               disabled={isLoading}
               className="w-full px-3 py-2 bg-white dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all disabled:opacity-50"
             >
-              {MODELS.map((m) => (
+              {GEMINI_MODELS.map((m) => (
                 <option key={m.value} value={m.value}>
                   {m.label}
                 </option>

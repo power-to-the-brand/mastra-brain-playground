@@ -5,14 +5,9 @@ import { mockTools } from "@/db/schema";
 import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
+import { ALLOWED_MODELS, DEFAULT_GEMINI_MODEL } from "@/lib/models";
 
 const MAX_FILES = 10;
-
-const ALLOWED_MODELS = [
-  "google/gemini-2.0-flash",
-  "google/gemini-3-flash-preview",
-  "google/gemini-3.1-flash-lite-preview",
-];
 
 const mockToolSchema = z.object({
   toolId: z
@@ -64,7 +59,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const fileKeys: string[] = body.fileKeys;
-    const model = body.model ?? "google/gemini-2.0-flash";
+    const model = body.model ?? DEFAULT_GEMINI_MODEL;
 
     // Validation
     if (

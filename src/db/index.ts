@@ -25,6 +25,7 @@ export {
   references,
   mockTools,
   rubrics,
+  judges,
 } from "./schema";
 export type {
   Scenario,
@@ -45,4 +46,6 @@ export type {
   NewMockTool,
   Rubric,
   NewRubric,
+  Judge,
+  NewJudge,
 } from "./schema";
