@@ -7,6 +7,8 @@ import {
   text,
   primaryKey,
   numeric,
+  boolean,
+  integer,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -147,6 +149,19 @@ export const runs = pgTable("runs", {
 
 export type Run = typeof runs.$inferSelect;
 export type NewRun = typeof runs.$inferInsert;
+
+export const runsRelations = relations(runs, ({ many, one }) => ({
+  agent: one(agents, {
+    fields: [runs.agentId],
+    references: [agents.id],
+  }),
+  scenario: one(scenarios, {
+    fields: [runs.scenarioId],
+    references: [scenarios.id],
+  }),
+  judgeAssignments: many(runJudges),
+  judgeResults: many(judgeResults),
+}));
 
 export const agentsRelations = relations(agents, ({ many }) => ({
   subagents: many(agentSubagents, { relationName: "agent_to_subagents" }),
@@ -304,9 +319,145 @@ export const judges = pgTable("judges", {
 export type Judge = typeof judges.$inferSelect;
 export type NewJudge = typeof judges.$inferInsert;
 
-export const judgesRelations = relations(judges, ({ one }) => ({
+export const judgesRelations = relations(judges, ({ one, many }) => ({
   rubric: one(rubrics, {
     fields: [judges.rubricId],
     references: [rubrics.id],
+  }),
+  runAssignments: many(runJudges),
+  judgeResults: many(judgeResults),
+}));
+
+// ── Run Judges (Assignment) ──────────────────────────────────────────────────
+
+export const runJudges = pgTable("run_judges", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  runId: uuid("run_id")
+    .references(() => runs.id, { onDelete: "cascade" })
+    .notNull(),
+  judgeId: uuid("judge_id")
+    .references(() => judges.id, { onDelete: "cascade" })
+    .notNull(),
+  autoEvaluate: boolean("auto_evaluate").notNull().default(false),
+  status: varchar("status", { length: 20 }).notNull().default("pending"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type RunJudge = typeof runJudges.$inferSelect;
+export type NewRunJudge = typeof runJudges.$inferInsert;
+
+// ── Judge Results ───────────────────────────────────────────────────────────
+
+export const judgeResults = pgTable("judge_results", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  runJudgeId: uuid("run_judge_id")
+    .references(() => runJudges.id, { onDelete: "cascade" })
+    .notNull(),
+  runId: uuid("run_id")
+    .references(() => runs.id, { onDelete: "cascade" })
+    .notNull(),
+  judgeId: uuid("judge_id")
+    .references(() => judges.id, { onDelete: "cascade" })
+    .notNull(),
+  mode: varchar("mode", { length: 20 }).notNull(),
+  overallScore: numeric("overall_score", { precision: 5, scale: 2 }),
+  verdict: varchar("verdict", { length: 20 }),
+  dimensionScores: jsonb("dimension_scores")
+    .$type<
+      Array<{
+        name: string;
+        score: number;
+        weight: number;
+        weightedScore: number;
+        reasoning: string;
+      }>
+    >()
+    .notNull()
+    .default([]),
+  summary: text("summary"),
+  model: varchar("model", { length: 255 }),
+  tokensUsed: jsonb("tokens_used").$type<{
+    input: number;
+    output: number;
+    total: number;
+  }>(),
+  evaluatedAt: timestamp("evaluated_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type JudgeResult = typeof judgeResults.$inferSelect;
+export type NewJudgeResult = typeof judgeResults.$inferInsert;
+
+// ── Judge Turn Results ───────────────────────────────────────────────────────
+
+export const judgeTurnResults = pgTable("judge_turn_results", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  judgeResultId: uuid("judge_result_id")
+    .references(() => judgeResults.id, { onDelete: "cascade" })
+    .notNull(),
+  runId: uuid("run_id")
+    .references(() => runs.id, { onDelete: "cascade" })
+    .notNull(),
+  turnIndex: integer("turn_index").notNull(),
+  scores: jsonb("scores")
+    .$type<
+      Array<{
+        name: string;
+        score: number;
+        weight: number;
+        weightedScore: number;
+        reasoning: string;
+      }>
+    >()
+    .notNull()
+    .default([]),
+  overallTurnScore: numeric("overall_turn_score", { precision: 5, scale: 2 }),
+  turnVerdict: varchar("turn_verdict", { length: 20 }),
+  summary: text("summary"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type JudgeTurnResult = typeof judgeTurnResults.$inferSelect;
+export type NewJudgeTurnResult = typeof judgeTurnResults.$inferInsert;
+
+export const runJudgesRelations = relations(runJudges, ({ one, many }) => ({
+  run: one(runs, {
+    fields: [runJudges.runId],
+    references: [runs.id],
+  }),
+  judge: one(judges, {
+    fields: [runJudges.judgeId],
+    references: [judges.id],
+  }),
+  results: many(judgeResults),
+}));
+
+export const judgeResultsRelations = relations(judgeResults, ({ one, many }) => ({
+  runJudge: one(runJudges, {
+    fields: [judgeResults.runJudgeId],
+    references: [runJudges.id],
+  }),
+  run: one(runs, {
+    fields: [judgeResults.runId],
+    references: [runs.id],
+  }),
+  judge: one(judges, {
+    fields: [judgeResults.judgeId],
+    references: [judges.id],
+  }),
+  turnResults: many(judgeTurnResults),
+}));
+
+export const judgeTurnResultsRelations = relations(judgeTurnResults, ({ one }) => ({
+  judgeResult: one(judgeResults, {
+    fields: [judgeTurnResults.judgeResultId],
+    references: [judgeResults.id],
+  }),
+  run: one(runs, {
+    fields: [judgeTurnResults.runId],
+    references: [runs.id],
   }),
 }));

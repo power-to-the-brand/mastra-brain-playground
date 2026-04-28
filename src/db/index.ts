@@ -26,6 +26,9 @@ export {
   mockTools,
   rubrics,
   judges,
+  runJudges,
+  judgeResults,
+  judgeTurnResults,
 } from "./schema";
 export type {
   Scenario,
@@ -48,4 +51,10 @@ export type {
   NewRubric,
   Judge,
   NewJudge,
+  RunJudge,
+  NewRunJudge,
+  JudgeResult,
+  NewJudgeResult,
+  JudgeTurnResult,
+  NewJudgeTurnResult,
 } from "./schema";
