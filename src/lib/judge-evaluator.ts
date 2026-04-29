@@ -1,5 +1,13 @@
 import { eq, and } from "drizzle-orm";
-import { db, runJudges, judgeResults, judgeTurnResults, judges, runs, rubrics } from "@/db";
+import {
+  db,
+  runJudges,
+  judgeResults,
+  judgeTurnResults,
+  judges,
+  runs,
+  rubrics,
+} from "@/db";
 
 const MASTRA_SERVER_URL =
   process.env.NEXT_PUBLIC_MASTRA_SERVER_URL ?? "http://localhost:4111";
@@ -72,9 +80,13 @@ function formatTrace(trace: RunTraceItem[]): string {
   return trace
     .map((t) => {
       const inputStr =
-        typeof t.input === "string" ? t.input : JSON.stringify(t.input, null, 2);
+        typeof t.input === "string"
+          ? t.input
+          : JSON.stringify(t.input, null, 2);
       const outputStr =
-        typeof t.output === "string" ? t.output : JSON.stringify(t.output, null, 2);
+        typeof t.output === "string"
+          ? t.output
+          : JSON.stringify(t.output, null, 2);
       return `[${t.type.toUpperCase()} - ${t.name}]\nInput: ${inputStr}\nOutput: ${outputStr}`;
     })
     .join("\n\n");
@@ -102,7 +114,11 @@ function splitIntoTurns(
         assistantText = extractMessageText(messages[i + 1]);
         i++; // Skip the assistant message we just consumed
       }
-      turns.push({ turnIndex: turnIndex++, userMessage: userText, assistantMessage: assistantText });
+      turns.push({
+        turnIndex: turnIndex++,
+        userMessage: userText,
+        assistantMessage: assistantText,
+      });
     }
   }
 
@@ -127,7 +143,9 @@ export function parseJudgeOutput(responseJson: unknown): ParsedJudgeOutput {
     text =
       (obj.text as string) ??
       (obj.content as string) ??
-      (typeof obj.result === "string" ? obj.result : JSON.stringify(obj.result ?? obj));
+      (typeof obj.result === "string"
+        ? obj.result
+        : JSON.stringify(obj.result ?? obj));
   } else {
     text = String(responseJson);
   }
@@ -142,13 +160,15 @@ export function parseJudgeOutput(responseJson: unknown): ParsedJudgeOutput {
     // Validate that it has dimensionScores
     if (parsed.dimensionScores && Array.isArray(parsed.dimensionScores)) {
       return {
-        dimensionScores: parsed.dimensionScores.map((ds: Record<string, unknown>) => ({
-          name: String(ds.name ?? "unknown"),
-          score: Number(ds.score ?? 0),
-          weight: Number(ds.weight ?? 1),
-          weightedScore: Number(ds.weightedScore ?? 0),
-          reasoning: String(ds.reasoning ?? ""),
-        })),
+        dimensionScores: parsed.dimensionScores.map(
+          (ds: Record<string, unknown>) => ({
+            name: String(ds.name ?? "unknown"),
+            score: Number(ds.score ?? 0),
+            weight: Number(ds.weight ?? 1),
+            weightedScore: Number(ds.weightedScore ?? 0),
+            reasoning: String(ds.reasoning ?? ""),
+          }),
+        ),
         summary: String(parsed.summary ?? ""),
       };
     }
@@ -221,7 +241,11 @@ async function callJudgeAgent(
   judgeId: string,
   systemPrompt: string,
   userMessage: string,
-): Promise<{ text: string; model?: { modelId: string; provider: string }; usage?: { inputTokens: number; outputTokens: number; totalTokens: number } }> {
+): Promise<{
+  text: string;
+  model?: { modelId: string; provider: string };
+  usage?: { inputTokens: number; outputTokens: number; totalTokens: number };
+}> {
   const url = `${MASTRA_SERVER_URL}/judge/dynamic`;
 
   const response = await fetch(url, {
@@ -325,12 +349,15 @@ export async function evaluateRunJudge(runJudgeId: string): Promise<void> {
 
   try {
     // ── 5. Build the evaluation prompt and call the judge agent ────────────
-    const systemPrompt = judge.systemPrompt?.trim() || "You are an expert evaluator. Review the provided conversation and score it against the defined rubric dimensions. Provide specific reasoning for each score based on the evidence in the text.";
+    const systemPrompt =
+      judge.systemPrompt?.trim() ||
+      "You are an expert evaluator. Review the provided conversation and score it against the defined rubric dimensions. Provide specific reasoning for each score based on the evidence in the text.";
 
     const dimensions = rubric.dimensions ?? [];
-    const dimensionsDescription = dimensions.length > 0
-      ? `\n\nEvaluation Rubric Dimensions:\n${JSON.stringify(dimensions, null, 2)}`
-      : "";
+    const dimensionsDescription =
+      dimensions.length > 0
+        ? `\n\nEvaluation Rubric Dimensions:\n${JSON.stringify(dimensions, null, 2)}`
+        : "";
 
     const conversationText = formatConversation(messages);
     const traceText = formatTrace(trace);
@@ -347,7 +374,10 @@ export async function evaluateRunJudge(runJudgeId: string): Promise<void> {
     const parsed = parseJudgeOutput(responseJson.text);
 
     // ── 7. Calculate weighted overall score and verdict ─────────────────────
-    const totalWeight = parsed.dimensionScores.reduce((sum, ds) => sum + ds.weight, 0);
+    const totalWeight = parsed.dimensionScores.reduce(
+      (sum, ds) => sum + ds.weight,
+      0,
+    );
     const overallScore =
       totalWeight > 0
         ? parsed.dimensionScores.reduce(
@@ -357,15 +387,20 @@ export async function evaluateRunJudge(runJudgeId: string): Promise<void> {
         : 0;
 
     // Recalculate weightedScore for each dimension based on actual scores
-    const dimensionScores: DimensionScore[] = parsed.dimensionScores.map((ds) => ({
-      name: ds.name,
-      score: ds.score,
-      weight: ds.weight,
-      weightedScore: ds.score * ds.weight,
-      reasoning: ds.reasoning,
-    }));
+    const dimensionScores: DimensionScore[] = parsed.dimensionScores.map(
+      (ds) => ({
+        name: ds.name,
+        score: ds.score,
+        weight: ds.weight,
+        weightedScore: ds.score * ds.weight,
+        reasoning: ds.reasoning,
+      }),
+    );
 
-    const verdict = calculateVerdict(overallScore, rubric.passingThreshold as number | null | undefined);
+    const verdict = calculateVerdict(
+      overallScore,
+      rubric.passingThreshold as number | null | undefined,
+    );
 
     // ── 8. Write results to judge_results ────────────────────────────────────
     const [result] = await db
@@ -435,15 +470,14 @@ export async function evaluateRunJudge(runJudgeId: string): Promise<void> {
                 ) / turnTotalWeight
               : 0;
 
-          const turnDimensionScores: DimensionScore[] = turnParsed.dimensionScores.map(
-            (ds) => ({
+          const turnDimensionScores: DimensionScore[] =
+            turnParsed.dimensionScores.map((ds) => ({
               name: ds.name,
               score: ds.score,
               weight: ds.weight,
               weightedScore: ds.score * ds.weight,
               reasoning: ds.reasoning,
-            }),
-          );
+            }));
 
           const turnVerdict = calculateVerdict(
             turnOverallScore,
@@ -490,8 +524,7 @@ export async function evaluateRunJudge(runJudgeId: string): Promise<void> {
       .where(eq(runJudges.id, runJudgeId));
   } catch (error) {
     // ── Error: Transition status to "failed" ────────────────────────────────
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
     await db
       .update(runJudges)

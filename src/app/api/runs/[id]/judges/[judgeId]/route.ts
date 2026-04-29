@@ -7,7 +7,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; judgeId: string }> },
 ) {
   try {
-    const { id: runId, judgeId } = await params;
+    const { id: runId, judgeId: assignmentId } = await params;
     const body = await request.json();
 
     const [updated] = await db
@@ -16,7 +16,7 @@ export async function PATCH(
         ...body,
         updatedAt: new Date(),
       })
-      .where(and(eq(runJudges.runId, runId), eq(runJudges.judgeId, judgeId)))
+      .where(and(eq(runJudges.runId, runId), eq(runJudges.id, assignmentId)))
       .returning();
 
     if (!updated) {
@@ -41,11 +41,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; judgeId: string }> },
 ) {
   try {
-    const { id: runId, judgeId } = await params;
+    const { id: runId, judgeId: assignmentId } = await params;
 
     const [deleted] = await db
       .delete(runJudges)
-      .where(and(eq(runJudges.runId, runId), eq(runJudges.judgeId, judgeId)))
+      .where(and(eq(runJudges.runId, runId), eq(runJudges.id, assignmentId)))
       .returning();
 
     if (!deleted) {

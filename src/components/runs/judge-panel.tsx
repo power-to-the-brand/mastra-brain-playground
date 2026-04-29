@@ -93,6 +93,9 @@ export function JudgePanel({ runId, runStatus }: JudgePanelProps) {
         setSelectedNewJudgeId("");
         setIsAddingJudge(false);
         await fetchAssignments();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.error("Failed to add judge:", errData);
       }
     } catch (error) {
       console.error("Failed to add judge:", error);
@@ -114,6 +117,10 @@ export function JudgePanel({ runId, runStatus }: JudgePanelProps) {
             a.id === assignmentId ? { ...a, autoEvaluate: !currentValue } : a,
           ),
         );
+      } else {
+        console.error("Failed to toggle auto-evaluate: status", res.status);
+        // Revert optimistic UI
+        await fetchAssignments();
       }
     } catch (error) {
       console.error("Failed to toggle auto-evaluate:", error);
@@ -127,6 +134,10 @@ export function JudgePanel({ runId, runStatus }: JudgePanelProps) {
       });
       if (res.ok) {
         setAssignments((prev) => prev.filter((a) => a.id !== assignmentId));
+      } else {
+        console.error("Failed to remove judge assignment: status", res.status);
+        // Re-fetch to ensure UI is in sync
+        await fetchAssignments();
       }
     } catch (error) {
       console.error("Failed to remove judge assignment:", error);

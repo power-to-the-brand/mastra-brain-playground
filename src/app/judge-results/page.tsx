@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Gavel, ChevronLeft, ChevronRight } from "lucide-react";
+import { Gavel, ChevronLeft, ChevronRight, Eye, Play } from "lucide-react";
 import Link from "next/link";
 
 export default function JudgeResultsPage() {
@@ -91,6 +91,7 @@ export default function JudgeResultsPage() {
                     <TableHead className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Score</TableHead>
                     <TableHead className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Verdict</TableHead>
                     <TableHead className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Evaluated</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -151,6 +152,26 @@ export default function JudgeResultsPage() {
                               })
                             : "—"}
                         </span>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-1">
+                          <Link
+                            href={`/judge-results/${result.id}`}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                            title="View result details"
+                          >
+                            <Eye className="h-3 w-3" />
+                            Result
+                          </Link>
+                          <Link
+                            href={`/runs/${result.runId}`}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                            title="View run details"
+                          >
+                            <Play className="h-3 w-3" />
+                            Run
+                          </Link>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

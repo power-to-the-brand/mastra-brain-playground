@@ -71,6 +71,8 @@ export function JudgeAssignment({ runId, onAssign }: JudgeAssignmentProps) {
     })();
   }, [runId]);
 
+
+
   const handleAddJudge = () => {
     if (!selectedJudgeId) return;
     const judge = judges.find((j) => j.id === selectedJudgeId);
@@ -83,20 +85,24 @@ export function JudgeAssignment({ runId, onAssign }: JudgeAssignmentProps) {
       judgeMode: judge.mode || "point",
       autoEvaluate: true,
     };
-    setAssignedJudges((prev) => [...prev, newAssignment]);
+    const updated = [...assignedJudges, newAssignment];
+    setAssignedJudges(updated);
+    onAssign?.(updated);
     setSelectedJudgeId("");
   };
 
   const handleRemoveJudge = (judgeId: string) => {
-    setAssignedJudges((prev) => prev.filter((a) => a.judgeId !== judgeId));
+    const updated = assignedJudges.filter((a) => a.judgeId !== judgeId);
+    setAssignedJudges(updated);
+    onAssign?.(updated);
   };
 
   const handleToggleAutoEvaluate = (judgeId: string) => {
-    setAssignedJudges((prev) =>
-      prev.map((a) =>
-        a.judgeId === judgeId ? { ...a, autoEvaluate: !a.autoEvaluate } : a,
-      ),
+    const updated = assignedJudges.map((a) =>
+      a.judgeId === judgeId ? { ...a, autoEvaluate: !a.autoEvaluate } : a,
     );
+    setAssignedJudges(updated);
+    onAssign?.(updated);
   };
 
   const handleSave = async () => {
