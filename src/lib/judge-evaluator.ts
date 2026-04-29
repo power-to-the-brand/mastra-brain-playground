@@ -211,19 +211,24 @@ function calculateVerdict(
 // ── Mastra Agent Call ──────────────────────────────────────────────────────────
 
 /**
- * Calls the Mastra judge agent via HTTP POST to generate an evaluation.
+ * Calls the Mastra judge agent via the dynamic-judge route.
+ * This creates the agent dynamically from the judge table config
+ * and returns the full evaluation response (not streamed).
+ *
+ * Returns { text, model, usage } from the dynamic-judge route.
  */
 async function callJudgeAgent(
   judgeId: string,
   systemPrompt: string,
   userMessage: string,
-): Promise<unknown> {
-  const url = `${MASTRA_SERVER_URL}/api/agents/${judgeId}/generate`;
+): Promise<{ text: string; model?: { modelId: string; provider: string }; usage?: { inputTokens: number; outputTokens: number; totalTokens: number } }> {
+  const url = `${MASTRA_SERVER_URL}/judge/dynamic`;
 
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      judgeId,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
@@ -238,7 +243,14 @@ async function callJudgeAgent(
     );
   }
 
-  return response.json();
+  const data = await response.json();
+
+  // The dynamic-judge route returns { text, model, usage }
+  return {
+    text: data.text ?? (typeof data === "string" ? data : JSON.stringify(data)),
+    model: data.model,
+    usage: data.usage,
+  };
 }
 
 // ── Core Evaluation ────────────────────────────────────────────────────────────
@@ -332,7 +344,7 @@ export async function evaluateRunJudge(runJudgeId: string): Promise<void> {
     );
 
     // ── 6. Parse the response ───────────────────────────────────────────────
-    const parsed = parseJudgeOutput(responseJson);
+    const parsed = parseJudgeOutput(responseJson.text);
 
     // ── 7. Calculate weighted overall score and verdict ─────────────────────
     const totalWeight = parsed.dimensionScores.reduce((sum, ds) => sum + ds.weight, 0);
@@ -367,7 +379,14 @@ export async function evaluateRunJudge(runJudgeId: string): Promise<void> {
         verdict,
         dimensionScores,
         summary: parsed.summary,
-        model: judge.model,
+        model: responseJson.model?.modelId ?? judge.model,
+        tokensUsed: responseJson.usage
+          ? {
+              input: responseJson.usage.inputTokens,
+              output: responseJson.usage.outputTokens,
+              total: responseJson.usage.totalTokens,
+            }
+          : undefined,
         evaluatedAt: new Date(),
       })
       .returning();
@@ -403,7 +422,7 @@ export async function evaluateRunJudge(runJudgeId: string): Promise<void> {
             turnUserMessage,
           );
 
-          const turnParsed = parseJudgeOutput(turnResponseJson);
+          const turnParsed = parseJudgeOutput(turnResponseJson.text);
           const turnTotalWeight = turnParsed.dimensionScores.reduce(
             (sum, ds) => sum + ds.weight,
             0,
