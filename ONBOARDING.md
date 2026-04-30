@@ -271,17 +271,17 @@ The S3 client is configured in `src/lib/s3.ts` with the bucket name and region.
 
 ## Gotchas & Conventions
 
-| Topic                     | Rule                                                                                          |
-| ------------------------- | --------------------------------------------------------------------------------------------- |
-| **Git**                   | This is its own Git repo. Run `git` commands from inside `mastra-brain-playground/`.          |
-| **Package manager**       | Use `npm` for all package installations.                                                      |
+| Topic                     | Rule                                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Git**                   | This is its own Git repo. Run `git` commands from inside `mastra-brain-playground/`.                               |
+| **Package manager**       | Use `npm` for all package installations.                                                                           |
 | **Drizzle migrations**    | **Do not run from this repo.** All migrations are pushed from `mastra-brain/`. See backend onboarding for details. |
-| **TypeScript**            | Avoid `any` — always create proper interfaces or use existing types.                          |
-| **Environment variables** | Never commit `.env.local` files.                                                              |
-| **Mastra backend**        | Must be running on `localhost:4111` for the playground to work.                               |
-| **Next.js**               | This is Next.js 16 with React 19 — APIs may differ from older versions.                       |
-| **shadcn/ui**             | Use `npx shadcn add <component>` to add new UI primitives.                                    |
-| **Tailwind**              | Using Tailwind CSS v4 with `@tailwindcss/postcss`.                                            |
+| **TypeScript**            | Avoid `any` — always create proper interfaces or use existing types.                                               |
+| **Environment variables** | Never commit `.env.local` files.                                                                                   |
+| **Mastra backend**        | Must be running on `localhost:4111` for the playground to work.                                                    |
+| **Next.js**               | This is Next.js 16 with React 19 — APIs may differ from older versions.                                            |
+| **shadcn/ui**             | Use `npx shadcn add <component>` to add new UI primitives.                                                         |
+| **Tailwind**              | Using Tailwind CSS v4 with `@tailwindcss/postcss`.                                                                 |
 
 ---
 
